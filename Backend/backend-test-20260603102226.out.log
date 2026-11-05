@@ -1,0 +1,12 @@
+
+> clickhelp-backend@0.0.0 start
+> node src/server.js
+
+ClickHELP Backend rodando em http://localhost:3001
+[0mGET /api/health [32m200[0m 5.212 ms - 84[0m
+[0mPOST /api/auth/register [32m201[0m 1.106 ms - 155[0m
+[0mPOST /api/auth/login [32m200[0m 0.603 ms - 192[0m
+[0mGET /api/auth/login [33m404[0m 0.792 ms - 34[0m
+[0mGET / [33m404[0m 0.163 ms - 34[0m
+[0mGET /api/auth/login [33m404[0m 0.314 ms - 34[0m
+[0mGET /api/chamados?role=Administrador [33m404[0m 1.143 ms - 34[0m
