@@ -1,0 +1,158 @@
+@media (max-width: 768px) {
+    .container-cartaoLogin {
+        width: min(92vw, 520px);
+        max-width: 520px;
+        padding: 34px 26px 30px;
+        border-radius: 22px;
+    }
+
+    .form-login {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .brand-header {
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .brand-mark {
+        width: 58px;
+        height: 58px;
+    }
+
+    .container-cartaoLogin h1 {
+        font-size: 28px;
+    }
+
+    .container-cartaoLogin p {
+        font-size: 12px;
+    }
+
+    .container-cartaoLogin input[type="text"],
+    .container-cartaoLogin input[type="password"],
+    .submit-button {
+        height: 46px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container-cartaoLogin {
+        width: min(94vw, 420px);
+        max-width: 420px;
+        padding: 26px 18px 24px;
+        border-radius: 18px;
+    }
+
+    .brand-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .brand-mark {
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+    }
+
+    .brand-mark::before {
+        width: 24px;
+        left: 15px;
+        top: 23px;
+    }
+
+    .brand-mark::after {
+        height: 24px;
+        left: 23px;
+        top: 15px;
+    }
+
+    .container-cartaoLogin h1 {
+        font-size: 25px;
+    }
+
+    .brand-chip {
+        font-size: 9px;
+    }
+
+    .container-cartaoLogin p {
+        font-size: 11px;
+    }
+
+    .input-label {
+        font-size: 9px;
+    }
+
+    .input-field {
+        margin-bottom: 13px;
+    }
+
+    .container-cartaoLogin input[type="text"],
+    .container-cartaoLogin input[type="password"] {
+        height: 42px;
+        font-size: 12px;
+        padding: 0 42px 0 38px;
+        border-radius: 12px;
+    }
+
+    .container-cartaoLogin .icon {
+        left: 13px;
+        font-size: 12px;
+    }
+
+    .toggle-password {
+        width: 34px;
+        height: 34px;
+    }
+
+    .login-options {
+        margin-bottom: 18px;
+    }
+
+    .remember-me,
+    .forgot-password {
+        font-size: 10px;
+    }
+
+    .submit-button {
+        height: 42px;
+        font-size: 13px;
+        border-radius: 12px;
+    }
+}
+
+@media (max-width: 360px) {
+    .container-cartaoLogin {
+        width: 95vw;
+        max-width: 95vw;
+        padding: 22px 14px 20px;
+        border-radius: 16px;
+    }
+
+    .container-cartaoLogin h1 {
+        font-size: 22px;
+    }
+
+    .container-cartaoLogin p {
+        font-size: 10px;
+    }
+
+    .login-options {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .container-cartaoLogin input[type="text"],
+    .container-cartaoLogin input[type="password"] {
+        height: 40px;
+        font-size: 11px;
+    }
+
+    .submit-button {
+        height: 40px;
+        font-size: 12px;
+    }
+}
