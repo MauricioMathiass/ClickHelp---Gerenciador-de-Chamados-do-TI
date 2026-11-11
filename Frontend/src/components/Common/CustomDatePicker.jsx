@@ -70,17 +70,17 @@ function CustomDatePicker({ id, name, onChange, placeholder = "dd/mm/aaaa", valu
     const handleEscape = (event) => {
       // Com a lista aberta, Esc fecha só a lista (e não o modal em volta).
       if (event.key === "Escape" && isOpenRef.current) {
-        event.stopImmediatePropagation();
+        event.stopPropagation();
         setIsOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleEscape);
+    document.addEventListener("keydown", handleEscape, true);
 
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("keydown", handleEscape, true);
     };
   }, []);
 

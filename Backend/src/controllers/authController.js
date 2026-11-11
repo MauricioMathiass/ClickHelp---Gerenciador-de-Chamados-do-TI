@@ -17,18 +17,18 @@ export const login = async (req, res) => {
   const { username, password, rememberMe } = req.body ?? {};
 
   if (!String(username ?? "").trim() || !String(password ?? "").trim()) {
-    throw badRequest("Preencha usuario e senha.");
+    throw badRequest("Preencha usuário e senha.");
   }
 
   const user = await findUserByCredentials({ username, password });
 
   if (!user) {
-    throw unauthorized("Usuario ou senha invalidos.");
+    throw unauthorized("Usuário ou senha inválidos.");
   }
 
   const publicUser = sanitizeUser(user);
   const token = signToken(
-    { sub: publicUser.id, ...publicUser },
+    { sub: publicUser.id, ...publicUser, pv: Number(user.passwordVersion ?? 0) },
     config.jwtSecret,
     rememberMe ? REMEMBER_TTL_SECONDS : SESSION_TTL_SECONDS
   );
@@ -48,7 +48,7 @@ export const registerUser = async (req, res) => {
   const user = await createUser(req.body ?? {});
 
   res.status(201).json({
-    message: "Usuario cadastrado com sucesso.",
+    message: "Usuário cadastrado com sucesso.",
     user: sanitizeUser(user),
   });
 };
@@ -62,7 +62,7 @@ export const updateUserHandler = async (req, res) => {
   const user = await updateUser(req.params.id, { role, active, password }, req.user);
 
   res.status(200).json({
-    message: "Usuario atualizado com sucesso.",
+    message: "Usuário atualizado com sucesso.",
     user,
   });
 };

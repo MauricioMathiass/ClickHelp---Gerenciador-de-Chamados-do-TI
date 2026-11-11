@@ -15,7 +15,7 @@ const readSecret = () => {
 
   if (process.env.NODE_ENV !== "test") {
     console.warn(
-      "[ClickHELP] JWT_SECRET ausente ou curto (minimo 32 caracteres). " +
+      "[ClickHELP] JWT_SECRET ausente ou curto (mínimo de 32 caracteres). " +
         "Usando um segredo temporario: todos precisarao entrar de novo quando o backend reiniciar."
     );
   }
@@ -38,5 +38,5 @@ export const config = {
 };
 
 if ((!config.admin.username || !config.admin.password) && process.env.NODE_ENV !== "test") {
-  console.warn("[ClickHELP] ADMIN_USERNAME/ADMIN_PASSWORD nao definidos no .env: o administrador inicial nao podera entrar.");
+  console.warn("[ClickHELP] ADMIN_USERNAME/ADMIN_PASSWORD não definidos no .env: o administrador inicial não poderá entrar.");
 }

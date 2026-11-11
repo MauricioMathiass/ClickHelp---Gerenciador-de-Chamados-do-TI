@@ -6,15 +6,26 @@ import ModalRelatorioGrafico from "./ModalRelatorioGrafico";
 import { formatPrioridade } from "../../utils/format";
 
 function getSlaLabel(item) {
-  const deadline = new Date(item.dataLimite);
-  const now = new Date();
-
   if (item.status === "Fechado") {
     return item.slaViolado ? "Violado" : "Atendido";
   }
 
-  return deadline < now ? "Violado" : "Dentro do prazo";
+  const deadline = new Date(item.dataLimite);
+
+  if (!item.dataLimite || Number.isNaN(deadline.getTime())) {
+    return "Sem prazo";
+  }
+
+  return deadline < new Date() ? "Violado" : "Dentro do prazo";
 }
+
+const slaClassName = (label) => {
+  if (label === "Violado") {
+    return "sla-bad";
+  }
+
+  return label === "Sem prazo" ? "" : "sla-good";
+};
 
 function formatDateInput(dateValue) {
   if (!dateValue) {
@@ -50,6 +61,7 @@ function ModalSLA({ isOpen, onClose, chamados }) {
       { value: "Atendido", label: "Atendido" },
       { value: "Dentro do prazo", label: "Dentro do prazo" },
       { value: "Violado", label: "Violado" },
+      { value: "Sem prazo", label: "Sem prazo" },
     ],
     []
   );
@@ -167,7 +179,6 @@ function ModalSLA({ isOpen, onClose, chamados }) {
               {filteredChamados.length ? (
                 filteredChamados.map((item) => {
                   const slaLabel = getSlaLabel(item);
-                  const isBad = slaLabel === "Violado";
 
                   return (
                     <tr key={item.id}>
@@ -175,7 +186,7 @@ function ModalSLA({ isOpen, onClose, chamados }) {
                       <td data-label="Assunto">{item.assunto}</td>
                       <td data-label="Solicitante">{item.solicitante}</td>
                       <td data-label="Prioridade">{formatPrioridade(item.prioridade)}</td>
-                      <td data-label="SLA" className={isBad ? "sla-bad" : "sla-good"}>
+                      <td data-label="SLA" className={slaClassName(slaLabel)}>
                         {slaLabel}
                       </td>
                     </tr>

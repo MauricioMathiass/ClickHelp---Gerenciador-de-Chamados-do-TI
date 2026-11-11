@@ -22,7 +22,7 @@ app.use("/api", routes);
 
 app.use((_req, res) => {
   res.status(404).json({
-    message: "Rota nao encontrada.",
+    message: "Rota não encontrada.",
   });
 });
 
@@ -33,11 +33,11 @@ app.use((error, _req, res, _next) => {
 
   // Corpo da requisição com JSON malformado ou grande demais.
   if (error.type === "entity.parse.failed") {
-    return res.status(400).json({ message: "Corpo da requisicao invalido." });
+    return res.status(400).json({ message: "Corpo da requisição inválido." });
   }
 
   if (error.type === "entity.too.large") {
-    return res.status(413).json({ message: "Requisicao muito grande." });
+    return res.status(413).json({ message: "Requisição muito grande." });
   }
 
   console.error(error);

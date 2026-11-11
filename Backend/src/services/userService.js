@@ -94,21 +94,21 @@ export const updateUser = async (id, { role, active, password }, actor) => {
   const numericId = Number(id);
 
   if (numericId === ENV_ADMIN_ID) {
-    throw badRequest("O administrador principal e definido no arquivo .env e nao pode ser alterado aqui.");
+    throw badRequest("O administrador principal é definido no arquivo .env e não pode ser alterado aqui.");
   }
 
   if (role !== undefined && !VALID_ROLES.includes(role)) {
-    throw badRequest("Perfil invalido.");
+    throw badRequest("Perfil inválido.");
   }
 
   if (active !== undefined && typeof active !== "boolean") {
-    throw badRequest("Status invalido.");
+    throw badRequest("Status inválido.");
   }
 
   const isSelf = Number(actor?.id) === numericId;
 
   if (isSelf && (active === false || (role !== undefined && role !== ROLE_ADMIN))) {
-    throw badRequest("Voce nao pode desativar seu proprio usuario nem remover seu perfil de administrador.");
+    throw badRequest("Você não pode desativar o seu próprio usuário nem remover o seu perfil de administrador.");
   }
 
   let passwordHash;
@@ -125,14 +125,20 @@ export const updateUser = async (id, { role, active, password }, actor) => {
     const index = users.findIndex((user) => Number(user.id) === numericId);
 
     if (index === -1) {
-      throw notFound("Usuario nao encontrado.");
+      throw notFound("Usuário não encontrado.");
     }
 
     const next = {
       ...users[index],
       ...(role !== undefined ? { role } : {}),
       ...(active !== undefined ? { active } : {}),
-      ...(passwordHash ? { passwordHash, passwordUpdatedAt: new Date().toISOString() } : {}),
+      ...(passwordHash
+        ? {
+            passwordHash,
+            passwordUpdatedAt: new Date().toISOString(),
+            passwordVersion: Number(users[index].passwordVersion ?? 0) + 1,
+          }
+        : {}),
       updatedAt: new Date().toISOString(),
     };
 
@@ -164,7 +170,7 @@ export const createUser = async ({ name, surname, password, role, department }) 
   const nextRole = role ? String(role) : ROLE_USUARIO;
 
   if (!trimmedName || !trimmedSurname || !plainPassword.trim()) {
-    throw badRequest("Preencha todos os campos obrigatorios.");
+    throw badRequest("Preencha todos os campos obrigatórios.");
   }
 
   if (plainPassword.length < MIN_PASSWORD_LENGTH) {
@@ -172,11 +178,11 @@ export const createUser = async ({ name, surname, password, role, department }) 
   }
 
   if (!VALID_ROLES.includes(nextRole)) {
-    throw badRequest("Perfil invalido.");
+    throw badRequest("Perfil inválido.");
   }
 
   if (trimmedName.length > 60 || trimmedSurname.length > 60) {
-    throw badRequest("Nome e sobrenome aceitam no maximo 60 caracteres cada.");
+    throw badRequest("Nome e sobrenome aceitam no máximo 60 caracteres cada.");
   }
 
   const passwordHash = await hashPassword(plainPassword);

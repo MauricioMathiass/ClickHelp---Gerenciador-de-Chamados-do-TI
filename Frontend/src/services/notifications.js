@@ -11,6 +11,8 @@ const EMPTY_STATE = { notifications: [], archived: [], unreadCount: 0 };
 let state = EMPTY_STATE;
 const listeners = new Set();
 let pollTimer = null;
+// Muda a cada logout: respostas de requisições antigas são descartadas.
+let generation = 0;
 
 const emit = () => listeners.forEach((listener) => listener(state));
 
@@ -24,10 +26,16 @@ const applyResponse = (data) => {
   return state;
 };
 
+/** Executa a requisição e só aplica o resultado se a sessão ainda for a mesma. */
+const requestAndApply = async (request) => {
+  const requestGeneration = generation;
+  const { data } = await request();
+  return requestGeneration === generation ? applyResponse(data) : state;
+};
+
 export const refreshNotifications = async () => {
   try {
-    const { data } = await api.get("/notifications");
-    return applyResponse(data);
+    return await requestAndApply(() => api.get("/notifications"));
   } catch {
     return state;
   }
@@ -38,20 +46,17 @@ export const markNotificationsAsRead = async (ids) => {
     return state;
   }
 
-  const { data } = await api.post("/notifications/read", { ids });
-  return applyResponse(data);
+  return requestAndApply(() => api.post("/notifications/read", { ids }));
 };
 
 /** Marca todas as notificações do usuário como lidas (inclusive as fora da lista exibida). */
 export const markAllNotificationsAsRead = async () => {
-  const { data } = await api.post("/notifications/read", { all: true });
-  return applyResponse(data);
+  return requestAndApply(() => api.post("/notifications/read", { all: true }));
 };
 
 /** Move as notificações do usuário atual para o histórico. */
 export const clearNotifications = async () => {
-  const { data } = await api.post("/notifications/clear");
-  return applyResponse(data);
+  return requestAndApply(() => api.post("/notifications/clear"));
 };
 
 export const getNotificationsState = () => state;
@@ -76,6 +81,7 @@ export const subscribeNotifications = (listener) => {
 };
 
 export const resetNotificationsState = () => {
+  generation += 1;
   state = EMPTY_STATE;
   emit();
 };

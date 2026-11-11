@@ -1,4 +1,4 @@
-import { api, getApiErrorMessage, setApiToken } from "./api";
+import { api, getApiErrorMessage, getApiToken, setApiToken } from "./api";
 
 const PERSISTENT_STORAGE_KEY = "clickhelp.auth";
 const SESSION_STORAGE_KEY = "clickhelp.auth.session";
@@ -84,7 +84,7 @@ export const loginUser = async ({ username, password, rememberMe }) => {
     persistRememberedLogin({ username: data.user.username, rememberMe });
     return session;
   } catch (error) {
-    throw new Error(getApiErrorMessage(error, "Nao foi possivel autenticar no servidor."));
+    throw new Error(getApiErrorMessage(error, "Não foi possível autenticar no servidor."));
   }
 };
 
@@ -132,7 +132,7 @@ export const createUser = async ({ name, surname, password, role }) => {
     const { data } = await api.post("/auth/register", { name, surname, password, role });
     return data.user;
   } catch (error) {
-    throw new Error(getApiErrorMessage(error, "Nao foi possivel cadastrar o usuario."));
+    throw new Error(getApiErrorMessage(error, "Não foi possível cadastrar o usuário."));
   }
 };
 
@@ -144,7 +144,8 @@ export const refreshSessionUser = async (session) => {
   try {
     const { data } = await api.get("/auth/me");
 
-    if (!data?.user) {
+    // Se a pessoa saiu (ou trocou de conta) enquanto a resposta vinha, ignora.
+    if (!data?.user || getApiToken() !== session.token) {
       return null;
     }
 

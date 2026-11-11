@@ -12,7 +12,7 @@ const STATUS_OPTIONS = [
 function ModalChamaTi({ isOpen, onClose, chamados, onUpdateChamado, abrirSLA }) {
   const [draftResponses, setDraftResponses] = useState({});
   const [errors, setErrors] = useState({});
-  const [savingId, setSavingId] = useState(null);
+  const [savingIds, setSavingIds] = useState(() => new Set());
   const chamadosAbertos = useMemo(
     () => chamados.filter((item) => item.status !== "Fechado"),
     [chamados]
@@ -28,9 +28,13 @@ function ModalChamaTi({ isOpen, onClose, chamados, onUpdateChamado, abrirSLA }) 
   };
 
   const submitUpdate = async (chamado, updates) => {
-    setSavingId(chamado.id);
+    setSavingIds((current) => new Set(current).add(chamado.id));
     const errorMessage = await onUpdateChamado(chamado.id, updates);
-    setSavingId(null);
+    setSavingIds((current) => {
+      const next = new Set(current);
+      next.delete(chamado.id);
+      return next;
+    });
     setError(chamado.id, errorMessage ?? "");
   };
 
@@ -101,7 +105,7 @@ function ModalChamaTi({ isOpen, onClose, chamados, onUpdateChamado, abrirSLA }) 
                   name={`status-${item.id}`}
                   value={item.status}
                   options={STATUS_OPTIONS}
-                  disabled={savingId === item.id}
+                  disabled={savingIds.has(item.id)}
                   onChange={(event) => handleStatusChange(item, event.target.value)}
                 />
 
@@ -117,10 +121,10 @@ function ModalChamaTi({ isOpen, onClose, chamados, onUpdateChamado, abrirSLA }) 
                 <button
                   type="button"
                   className="modal-primary-action"
-                  disabled={savingId === item.id}
+                  disabled={savingIds.has(item.id)}
                   onClick={() => handleCloseChamado(item)}
                 >
-                  {savingId === item.id ? "Salvando..." : "Fechar solicitação"}
+                  {savingIds.has(item.id) ? "Salvando..." : "Fechar solicitação"}
                 </button>
               </div>
 

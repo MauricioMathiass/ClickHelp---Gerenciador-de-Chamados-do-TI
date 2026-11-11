@@ -28,7 +28,7 @@ const buildUsernamePreview = (name, surname, existingUsernames) => {
   return candidate;
 };
 
-function ModalNovoUsuario({ isOpen, onClose, existingUsernames = [] }) {
+function ModalNovoUsuario({ isOpen, onClose, onCreated, existingUsernames = [] }) {
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
   const [password, setPassword] = useState("");
@@ -88,6 +88,7 @@ function ModalNovoUsuario({ isOpen, onClose, existingUsernames = [] }) {
 
       setFeedback(`Usuário cadastrado com sucesso. Login gerado: ${createdUser.username}`);
       setFeedbackType("success");
+      onCreated?.(createdUser);
       setName("");
       setSurname("");
       setPassword("");
@@ -172,7 +173,7 @@ function ModalNovoUsuario({ isOpen, onClose, existingUsernames = [] }) {
           </div>
 
           <div className="admin-user-field">
-            <label htmlFor="novo-usuario-confirma-senha">Confirme Senha</label>
+            <label htmlFor="novo-usuario-confirma-senha">Confirme a senha</label>
             <div className="admin-user-password-wrap">
               <input
                 id="novo-usuario-confirma-senha"

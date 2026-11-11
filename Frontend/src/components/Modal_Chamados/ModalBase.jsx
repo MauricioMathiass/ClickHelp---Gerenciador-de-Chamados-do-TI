@@ -23,6 +23,7 @@ function ModalBase({
   const titleId = `${modalId}-title`;
   const onCloseRef = useRef(onClose);
   const cardRef = useRef(null);
+  const pressedOnOverlayRef = useRef(false);
 
   onCloseRef.current = onClose;
 
@@ -61,7 +62,20 @@ function ModalBase({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div
+      className="modal-overlay"
+      onMouseDown={(event) => {
+        // Arrastar a seleção de texto para fora do modal não deve fechá-lo.
+        pressedOnOverlayRef.current = event.target === event.currentTarget;
+      }}
+      onClick={(event) => {
+        if (pressedOnOverlayRef.current && event.target === event.currentTarget) {
+          onClose?.();
+        }
+
+        pressedOnOverlayRef.current = false;
+      }}
+    >
       <div
         ref={cardRef}
         className={`modal-card modal-size-${size}`}
@@ -69,7 +83,6 @@ function ModalBase({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        onClick={(event) => event.stopPropagation()}
       >
         <div className={`modal-header ${centerTitle ? "modal-header-center-title" : ""}`.trim()}>
           <h2 id={titleId}>{title}</h2>

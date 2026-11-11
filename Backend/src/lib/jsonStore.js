@@ -7,6 +7,28 @@ const DEFAULT_DATA_DIR = path.resolve(__dirname, "../data");
 
 export const getDataDir = () => path.resolve(process.env.DATA_DIR || DEFAULT_DATA_DIR);
 
+// No Windows, substituir um arquivo que outro programa (antivírus, editor,
+// indexador) está lendo pode falhar por alguns milissegundos.
+const RETRYABLE_CODES = new Set(["EPERM", "EBUSY", "EACCES"]);
+const RENAME_ATTEMPTS = 6;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const renameWithRetry = async (from, to) => {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await fs.rename(from, to);
+      return;
+    } catch (error) {
+      if (!RETRYABLE_CODES.has(error.code) || attempt >= RENAME_ATTEMPTS) {
+        throw error;
+      }
+
+      await sleep(25 * attempt);
+    }
+  }
+};
+
 /**
  * Armazena um array em um arquivo JSON com segurança:
  * - todas as operações passam por uma fila (uma de cada vez), evitando que
@@ -41,7 +63,7 @@ export const createJsonStore = (fileName) => {
     const parsed = JSON.parse(rawValue);
 
     if (!Array.isArray(parsed)) {
-      throw new Error(`Arquivo de dados invalido: ${fileName} nao contem uma lista.`);
+      throw new Error(`Arquivo de dados inválido: ${fileName} não contém uma lista.`);
     }
 
     return parsed;
@@ -53,7 +75,13 @@ export const createJsonStore = (fileName) => {
 
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.writeFile(tempPath, JSON.stringify(items, null, 2), "utf8");
-    await fs.rename(tempPath, target);
+
+    try {
+      await renameWithRetry(tempPath, target);
+    } catch (error) {
+      await fs.rm(tempPath, { force: true }).catch(() => {});
+      throw error;
+    }
   };
 
   const enqueue = (task) => {

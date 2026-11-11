@@ -372,3 +372,41 @@ describe("notificacoes (ajustes)", () => {
     assert.equal(after.unreadCount, 0);
   });
 });
+
+describe("correcoes da terceira analise", () => {
+  test("redefinir a senha derruba as sessoes abertas", async () => {
+    await api("POST", "/auth/register", {
+      token: adminToken,
+      body: { name: "Sessao", surname: "Antiga", password: "senha123" },
+    });
+    const tokenAntigo = await login("sessao.antiga", "senha123");
+    assert.equal((await api("GET", "/chamados", { token: tokenAntigo })).status, 200);
+
+    const users = (await api("GET", "/auth/users", { token: adminToken })).data.users;
+    const alvo = users.find((user) => user.username === "sessao.antiga");
+    await api("PATCH", `/auth/users/${alvo.id}`, { token: adminToken, body: { password: "outra-senha" } });
+
+    assert.equal((await api("GET", "/chamados", { token: tokenAntigo })).status, 401);
+    const tokenNovo = await login("sessao.antiga", "outra-senha");
+    assert.equal((await api("GET", "/chamados", { token: tokenNovo })).status, 200);
+  });
+
+  test("chamado fechado nao pode ficar sem resposta", async () => {
+    const { data } = await api("POST", "/chamados", { token: mariaToken, body: novoChamado() });
+    const url = `/chamados/${data.chamado.id}`;
+    await api("PATCH", url, { token: analistaToken, body: { status: "Fechado", resposta: "Resolvido" } });
+
+    const apagar = await api("PATCH", url, { token: analistaToken, body: { resposta: "   " } });
+    assert.equal(apagar.status, 400);
+
+    const atual = (await api("GET", "/chamados", { token: adminToken })).data.chamados.find(
+      (item) => item.id === data.chamado.id
+    );
+    assert.equal(atual.resposta, "Resolvido");
+  });
+
+  test("mensagens de erro com acentuacao correta", async () => {
+    const { data } = await api("POST", "/auth/login", { body: { username: "x", password: "y" } });
+    assert.equal(data.message, "Usuário ou senha inválidos.");
+  });
+});

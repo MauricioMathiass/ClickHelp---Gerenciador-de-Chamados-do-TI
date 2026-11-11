@@ -18,7 +18,12 @@ export const requireAuth = async (req, _res, next) => {
 
   const user = await findActiveUserById(payload.sub);
 
-  if (!user || user.username !== payload.username) {
+  // Senha redefinida depois do login (versão diferente): a sessão antiga cai.
+  if (
+    !user ||
+    user.username !== payload.username ||
+    Number(payload.pv ?? 0) !== Number(user.passwordVersion ?? 0)
+  ) {
     return next(unauthorized());
   }
 

@@ -4,6 +4,8 @@ export const SESSION_EXPIRED_EVENT = "clickhelp:session-expired";
 
 let currentToken = null;
 
+export const getApiToken = () => currentToken;
+
 export const setApiToken = (token) => {
   currentToken = token || null;
 };
@@ -40,7 +42,7 @@ export const getApiErrorMessage = (error, fallback) => {
   }
 
   if (!error.response) {
-    return "Nao foi possivel conectar ao servidor. Verifique se o backend esta rodando.";
+    return "Não foi possível conectar ao servidor. Verifique se o backend está rodando.";
   }
 
   return fallback;

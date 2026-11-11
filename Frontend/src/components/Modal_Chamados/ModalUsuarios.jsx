@@ -174,6 +174,7 @@ function ModalUsuarios({ isOpen, onClose, currentUserId }) {
           setOpenNovoUsuario(false);
           refresh();
         }}
+        onCreated={refresh}
         existingUsernames={users.map((user) => user.username)}
       />
     </>

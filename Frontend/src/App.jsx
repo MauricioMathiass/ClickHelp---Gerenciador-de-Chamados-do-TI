@@ -10,6 +10,8 @@ import {
   resetNotificationsState,
 } from "./services/notifications";
 
+const SESSION_SYNC_INTERVAL_MS = 60000;
+
 function App() {
   const [session, setSession] = useState(() => getStoredSession());
   const [currentView, setCurrentView] = useState("login");
@@ -28,20 +30,50 @@ function App() {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
   }, []);
 
-  // Sessão salva: confirma no backend e atualiza nome/perfil (podem ter mudado).
-  useEffect(() => {
-    const storedSession = getStoredSession();
+  // Confirma a sessão no backend ao abrir e a cada minuto: se o admin mudar o
+  // perfil ou o nome do usuário, a tela se ajusta sem precisar recarregar.
+  const sessionToken = session?.token;
 
-    if (!storedSession) {
-      return;
+  useEffect(() => {
+    if (!sessionToken) {
+      return undefined;
     }
 
-    refreshSessionUser(storedSession).then((nextSession) => {
-      if (nextSession) {
-        setSession(nextSession);
+    let cancelled = false;
+
+    const syncUser = async () => {
+      const current = getStoredSession();
+
+      if (!current || current.token !== sessionToken) {
+        return;
       }
-    });
-  }, []);
+
+      const nextSession = await refreshSessionUser(current);
+
+      if (cancelled || !nextSession) {
+        return;
+      }
+
+      setSession((previous) => {
+        if (!previous || previous.token !== nextSession.token) {
+          return previous;
+        }
+
+        const changed =
+          previous.user?.role !== nextSession.user.role || previous.user?.name !== nextSession.user.name;
+
+        return changed ? nextSession : previous;
+      });
+    };
+
+    syncUser();
+    const intervalId = window.setInterval(syncUser, SESSION_SYNC_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [sessionToken]);
 
   const handleLoginSuccess = (nextSession) => {
     setSession(nextSession);

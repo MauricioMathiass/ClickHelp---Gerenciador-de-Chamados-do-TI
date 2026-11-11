@@ -13,7 +13,7 @@ Sistema web para abertura e acompanhamento de chamados de TI, com painel de aten
 | **Analista de TI** | Tudo do usuário + Painel TI (ver todos os chamados, mudar status, responder e fechar) e Histórico |
 | **Administrador** | Tudo do analista + gestão de usuários, relatório de SLA e rotinas diárias fixas |
 
-O primeiro administrador é definido no `Backend/.env`. Os outros usuários são gerenciados por ele na tela **Usuários**: cadastrar, mudar o perfil, desativar/reativar e redefinir a senha (é assim que se atende o "Esqueceu a senha?"). Usuário desativado perde o acesso na hora, e mudança de perfil vale sem precisar entrar de novo.
+O primeiro administrador é definido no `Backend/.env`. Os outros usuários são gerenciados por ele na tela **Usuários**: cadastrar, mudar o perfil, desativar/reativar e redefinir a senha (é assim que se atende o "Esqueceu a senha?"). Usuário desativado perde o acesso na hora, redefinir a senha encerra as sessões abertas dele, e mudança de perfil vale sem precisar entrar de novo.
 
 ## Como rodar
 
@@ -42,6 +42,8 @@ npm run test:backend
 ```
 
 Os testes rodam em uma pasta temporária e não mexem nos dados reais.
+
+No modo `npm run dev`, o `nodemon` reinicia o backend quando o código muda, mas ignora a pasta de dados (`Backend/nodemon.json`). Assim, abrir chamados não derruba o servidor.
 
 ## Regras importantes
 

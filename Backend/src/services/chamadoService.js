@@ -52,17 +52,30 @@ const FIXED_ADMIN_REQUESTS = [
   },
 ];
 
+/**
+ * Cria a notificação sem derrubar a operação principal: se o chamado já foi
+ * salvo e só o aviso falhou, a resposta continua sendo de sucesso (evita que
+ * o usuário reenvie e duplique o chamado).
+ */
+const notifySafely = async (notification) => {
+  try {
+    await createNotification(notification);
+  } catch (error) {
+    console.error("[ClickHELP] Falha ao criar notificação:", error);
+  }
+};
+
 const normalizeText = (value) => String(value ?? "").trim().toLowerCase();
 
 const requireText = (value, label, maxLength) => {
   const text = String(value ?? "").trim();
 
   if (!text) {
-    throw badRequest("Preencha todos os campos obrigatorios antes de enviar.");
+    throw badRequest("Preencha todos os campos obrigatórios antes de enviar.");
   }
 
   if (text.length > maxLength) {
-    throw badRequest(`O campo ${label} aceita no maximo ${maxLength} caracteres.`);
+    throw badRequest(`O campo ${label} aceita no máximo ${maxLength} caracteres.`);
   }
 
   return text;
@@ -97,7 +110,7 @@ const createFixedChamado = (template, referenceDate) => {
   };
 };
 
-export const AUTO_CLOSE_MESSAGE = "Encerrada automaticamente: rotina diaria de um dia anterior.";
+export const AUTO_CLOSE_MESSAGE = "Encerrada automaticamente: rotina diária de um dia anterior.";
 
 /**
  * Mantém as rotinas fixas do admin:
@@ -176,7 +189,7 @@ export const createChamado = async (data, user) => {
   const prioridade = normalizeText(data.prioridade);
 
   if (!VALID_PRIORIDADES.includes(prioridade)) {
-    throw badRequest("Selecione uma prioridade valida.");
+    throw badRequest("Selecione uma prioridade válida.");
   }
 
   const now = new Date().toISOString();
@@ -197,7 +210,7 @@ export const createChamado = async (data, user) => {
 
   await store.update((items) => ({ items: [chamado, ...items], result: null }));
 
-  await createNotification({
+  await notifySafely({
     type: "solicitacao-enviada",
     title: "Solicitação enviada",
     message: `Seu chamado "${assunto}" foi registrado com sucesso no ClickHELP.`,
@@ -205,7 +218,7 @@ export const createChamado = async (data, user) => {
     context: { chamadoId: chamado.id },
   });
 
-  await createNotification({
+  await notifySafely({
     type: "novo-chamado-ti",
     title: "Nova solicitação recebida",
     message: `${user.username} abriu o chamado "${assunto}" e aguarda atendimento da equipe de TI.`,
@@ -230,22 +243,22 @@ export const updateChamado = async (id, data, user) => {
   }
 
   if (hasStatus && !VALID_STATUSES.includes(data.status)) {
-    throw badRequest("Status invalido.");
+    throw badRequest("Status inválido.");
   }
 
   if (hasResposta && typeof data.resposta !== "string") {
-    throw badRequest("Resposta invalida.");
+    throw badRequest("Resposta inválida.");
   }
 
   if (hasResposta && data.resposta.length > MAX_RESPOSTA) {
-    throw badRequest(`A resposta aceita no maximo ${MAX_RESPOSTA} caracteres.`);
+    throw badRequest(`A resposta aceita no máximo ${MAX_RESPOSTA} caracteres.`);
   }
 
   const { previous, updated } = await store.update((items) => {
     const index = items.findIndex((item) => item.id === id);
 
     if (index === -1 || !canSeeChamado(items[index], user)) {
-      throw notFound("Chamado nao encontrado.");
+      throw notFound("Chamado não encontrado.");
     }
 
     const current = items[index];
@@ -259,10 +272,12 @@ export const updateChamado = async (id, data, user) => {
       dataAtualizacao: now.toISOString(),
     };
 
+    // Chamado fechado precisa sempre ter resposta (ao fechar e ao editar depois).
+    if (nextStatus === STATUS_FECHADO && !nextResposta) {
+      throw badRequest("Escreva a resposta da TI antes de fechar o chamado.");
+    }
+
     if (nextStatus === STATUS_FECHADO && current.status !== STATUS_FECHADO) {
-      if (!nextResposta) {
-        throw badRequest("Escreva a resposta da TI antes de fechar o chamado.");
-      }
 
       next.dataFechamento = now.toISOString();
       next.closedByUsername = user.username;
@@ -291,7 +306,7 @@ export const updateChamado = async (id, data, user) => {
     [STATUS_EM_ANDAMENTO, STATUS_FECHADO].includes(updated.status) &&
     !updated.isFixedRoutine
   ) {
-    await createNotification({
+    await notifySafely({
       type: "status-chamado-atualizado",
       title: `Chamado ${updated.status === STATUS_FECHADO ? "fechado" : "em andamento"}`,
       message: `Sua solicitação "${updated.assunto}" foi atualizada para "${updated.status}".`,

@@ -3,6 +3,34 @@ import { formatPrioridade } from "../../utils/format";
 
 const percent = (value, total) => (total ? Math.round((value / total) * 100) : 0);
 
+/**
+ * Converte quantidades em percentuais inteiros que somam exatamente 100
+ * (método do maior resto), evitando valores como -1% ou 101%.
+ */
+const distributePercent = (values) => {
+  const total = values.reduce((sum, value) => sum + value, 0);
+
+  if (!total) {
+    return values.map(() => 0);
+  }
+
+  const raw = values.map((value) => (value * 100) / total);
+  const result = raw.map(Math.floor);
+  let remaining = 100 - result.reduce((sum, value) => sum + value, 0);
+
+  raw
+    .map((value, index) => ({ index, fraction: value - Math.floor(value) }))
+    .sort((first, second) => second.fraction - first.fraction)
+    .forEach(({ index }) => {
+      if (remaining > 0) {
+        result[index] += 1;
+        remaining -= 1;
+      }
+    });
+
+  return result;
+};
+
 // "Atendido" = fechado dentro do prazo; "Dentro do prazo" = ainda aberto e no prazo;
 // "Violado" = prazo estourado (aberto ou fechado). A eficiência considera só os
 // chamados já decididos (atendidos + violados).
@@ -11,25 +39,31 @@ function buildSlaStats(chamados) {
   const atendidos = chamados.filter((item) => item.slaLabel === "Atendido").length;
   const emAberto = chamados.filter((item) => item.slaLabel === "Dentro do prazo").length;
   const violados = chamados.filter((item) => item.slaLabel === "Violado").length;
+  const semPrazo = total - atendidos - emAberto - violados;
 
   return {
     total,
     atendidos,
     emAberto,
     violados,
+    semPrazo,
     eficiencia: percent(atendidos, atendidos + violados),
   };
 }
 
 function ModalRelatorioGrafico({ isOpen, onClose, chamados }) {
-  const { total, atendidos, emAberto, violados, eficiencia } = buildSlaStats(chamados);
-  const atendidosPercentual = percent(atendidos, total);
-  const emAbertoPercentual = percent(emAberto, total);
-  const violadosPercentual = total ? 100 - atendidosPercentual - emAbertoPercentual : 0;
+  const { total, atendidos, emAberto, violados, semPrazo, eficiencia } = buildSlaStats(chamados);
+  const [atendidosPercentual, emAbertoPercentual, violadosPercentual] = distributePercent([
+    atendidos,
+    emAberto,
+    violados,
+    semPrazo,
+  ]);
   const fimAbertos = atendidosPercentual + emAbertoPercentual;
+  const fimViolados = fimAbertos + violadosPercentual;
   const pieStyle = {
     background: total
-      ? `conic-gradient(#5de2c0 0 ${atendidosPercentual}%, #7da7ff ${atendidosPercentual}% ${fimAbertos}%, #ff7d7d ${fimAbertos}% 100%)`
+      ? `conic-gradient(#5de2c0 0 ${atendidosPercentual}%, #7da7ff ${atendidosPercentual}% ${fimAbertos}%, #ff7d7d ${fimAbertos}% ${fimViolados}%, rgba(255,255,255,0.14) ${fimViolados}% 100%)`
       : "conic-gradient(rgba(255,255,255,0.14) 0 100%)",
   };
 
