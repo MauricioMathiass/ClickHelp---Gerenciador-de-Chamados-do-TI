@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import { badRequest } from "../../shared/http/httpError.js";
 import { createJsonStore } from "../../shared/storage/jsonStore.js";
 import { createCalendar, MOVABLE_HOLIDAYS } from "../tickets/sla.js";
@@ -7,14 +6,11 @@ import { DEFAULT_SETTINGS } from "./settings.defaults.js";
 const store = createJsonStore("settings.json", { kind: "object" });
 
 export const PRIORITIES = ["baixa", "media", "alta"];
-export const ROUTINE_FREQUENCIES = ["daily", "weekly", "monthly"];
 
 const MAX_LIST_ITEMS = 100;
-const MAX_ROUTINES = 50;
 const MAX_LOGO_LENGTH = 400 * 1024; // ~300 KB de imagem em base64
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 const MONTH_DAY = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
-const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const LOGO_DATA_URL = /^data:image\/(png|jpeg|webp|svg\+xml);base64,[a-z0-9+/=]+$/i;
 
 let cache = null;
@@ -143,55 +139,6 @@ const normalizeHolidays = (holidays = {}) => {
   return { national: holidays.national !== false, movable, extra: extra.sort() };
 };
 
-const requireSomeWeekday = (weekdays) => {
-  const days = weekdayList(weekdays ?? [], "Dias da rotina");
-
-  if (!days.length) {
-    throw badRequest("Escolha pelo menos um dia da semana para a rotina semanal.");
-  }
-
-  return days;
-};
-
-const normalizeRoutine = (routine = {}, locations) => {
-  const frequency = String(routine.frequency ?? "daily");
-  const priority = String(routine.priority ?? "media");
-  const time = String(routine.time ?? "07:30");
-
-  if (!ROUTINE_FREQUENCIES.includes(frequency)) {
-    throw badRequest("Frequência de rotina inválida.");
-  }
-
-  if (!PRIORITIES.includes(priority)) {
-    throw badRequest("Prioridade de rotina inválida.");
-  }
-
-  if (!TIME.test(time)) {
-    throw badRequest("Horário de rotina inválido. Use HH:MM.");
-  }
-
-  const location = text(routine.location, "Local da rotina", { max: 60 });
-
-  if (location && locations.length && !locations.includes(location)) {
-    throw badRequest(`O local "${location}" da rotina não está cadastrado.`);
-  }
-
-  const id = /^[a-z0-9-]{1,60}$/i.test(String(routine.id ?? "")) ? String(routine.id) : crypto.randomUUID();
-
-  return {
-    id,
-    title: text(routine.title, "Título da rotina", { max: 150, required: true }),
-    description: text(routine.description, "Descrição da rotina", { max: 500 }) || "Solicitação de rotina",
-    location,
-    priority,
-    time,
-    frequency,
-    weekdays: frequency === "weekly" ? requireSomeWeekday(routine.weekdays) : [],
-    monthDay: frequency === "monthly" ? integer(routine.monthDay, "Dia do mês da rotina", 1, 31) : null,
-    active: routine.active !== false,
-  };
-};
-
 /** Valida e normaliza a configuração completa enviada pela tela. */
 export const normalizeSettings = (input = {}) => {
   const catalog = {
@@ -200,29 +147,11 @@ export const normalizeSettings = (input = {}) => {
     departments: uniqueTextList(input.catalog?.departments ?? [], "Departamentos"),
   };
 
-  if (!Array.isArray(input.routines ?? [])) {
-    throw badRequest("Lista de rotinas inválida.");
-  }
-
-  if ((input.routines ?? []).length > MAX_ROUTINES) {
-    throw badRequest(`Cadastre no máximo ${MAX_ROUTINES} rotinas.`);
-  }
-
-  const routines = (input.routines ?? []).map((routine) => normalizeRoutine(routine, catalog.locations));
-  const ids = new Set();
-  routines.forEach((routine) => {
-    if (ids.has(routine.id)) {
-      routine.id = crypto.randomUUID();
-    }
-    ids.add(routine.id);
-  });
-
   return {
     branding: normalizeBranding(input.branding),
     catalog,
     sla: normalizeSla(input.sla),
     holidays: normalizeHolidays(input.holidays),
-    routines,
   };
 };
 
@@ -241,7 +170,6 @@ const withDefaults = (saved) => {
       hoursByPriority: { ...DEFAULT_SETTINGS.sla.hoursByPriority, ...saved.sla?.hoursByPriority },
     },
     holidays: { ...DEFAULT_SETTINGS.holidays, ...saved.holidays },
-    routines: Array.isArray(saved.routines) ? saved.routines : [],
   };
 };
 

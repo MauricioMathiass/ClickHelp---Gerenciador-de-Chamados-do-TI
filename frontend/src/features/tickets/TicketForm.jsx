@@ -104,6 +104,11 @@ function TicketForm({ username, onSubmit }) {
             onChange={setField("local")}
             options={toOptions(catalog.locations, "Selecione um local")}
           />
+          {!catalog.locations.length ? (
+            <p className="field-hint">
+              Nenhum local cadastrado. O administrador cadastra em Configurações → Cadastros.
+            </p>
+          ) : null}
         </div>
 
         {hasCategories ? (

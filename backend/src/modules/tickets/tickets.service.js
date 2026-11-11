@@ -3,7 +3,6 @@ import { badRequest, notFound } from "../../shared/http/httpError.js";
 import { ROLE_ADMIN, TI_ROLES } from "../../shared/roles.js";
 import { createNotification } from "../notifications/notifications.service.js";
 import { getSettings, getWorkCalendar, PRIORITIES } from "../settings/settings.service.js";
-import { ensureRoutineTickets } from "./routines.service.js";
 import { buildSlaLimitFromDate } from "./sla.js";
 import {
   ADMIN_ONLY_VISIBILITY,
@@ -85,7 +84,6 @@ const sortByNewest = (items) =>
 
 /** Lista os chamados que o usuário autenticado pode ver. */
 export const listChamados = async (user) => {
-  await ensureRoutineTickets();
   const chamados = await store.read();
   return sortByNewest(chamados.filter((item) => canSeeChamado(item, user)));
 };

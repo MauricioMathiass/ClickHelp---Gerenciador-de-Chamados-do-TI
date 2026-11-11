@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import Feedback from "../../shared/components/Feedback";
 import Modal from "../../shared/components/Modal";
-import Select from "../../shared/components/Select";
 import ListEditor from "./ListEditor";
 import { useSettings } from "./useSettings";
 import "./settings.css";
@@ -11,7 +10,6 @@ const TABS = [
   { value: "catalog", label: "Cadastros" },
   { value: "sla", label: "SLA e expediente" },
   { value: "holidays", label: "Feriados" },
-  { value: "routines", label: "Rotinas" },
 ];
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -19,11 +17,6 @@ const PRIORITIES = [
   { value: "alta", label: "Alta" },
   { value: "media", label: "Média" },
   { value: "baixa", label: "Baixa" },
-];
-const FREQUENCIES = [
-  { value: "daily", label: "Todo dia útil" },
-  { value: "weekly", label: "Semanal" },
-  { value: "monthly", label: "Mensal" },
 ];
 const MAX_LOGO_BYTES = 300 * 1024;
 
@@ -47,19 +40,6 @@ const parseDayMonth = (text) => {
 
   return `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 };
-
-const newRoutine = () => ({
-  id: `rotina-${Date.now().toString(36)}`,
-  title: "",
-  description: "",
-  location: "",
-  priority: "media",
-  time: "08:00",
-  frequency: "daily",
-  weekdays: [1],
-  monthDay: 1,
-  active: true,
-});
 
 function WeekdayPicker({ value, onChange, label }) {
   const toggle = (day) =>
@@ -359,195 +339,6 @@ function HolidaysTab({ draft, update, movableOptions }) {
   );
 }
 
-function RoutineCard({ routine, index, locations, update }) {
-  const set = (field, value) => update((next) => (next.routines[index][field] = value));
-  const locationOptions = [
-    { value: "", label: "Sem local" },
-    ...locations.map((item) => ({ value: item, label: item })),
-  ];
-
-  return (
-    <article className="routine-card">
-      <div className="routine-card-top">
-        <label className="check-row">
-          <input
-            type="checkbox"
-            checked={routine.active}
-            onChange={(event) => set("active", event.target.checked)}
-          />
-          <span>{routine.active ? "Ativa" : "Desativada"}</span>
-        </label>
-        <button
-          type="button"
-          className="btn btn-danger btn-sm"
-          onClick={() => update((next) => next.routines.splice(index, 1))}
-        >
-          Remover
-        </button>
-      </div>
-
-      <div className="settings-grid">
-        <div className="field">
-          <label className="field-label" htmlFor={`routine-title-${routine.id}`}>
-            Título
-          </label>
-          <input
-            id={`routine-title-${routine.id}`}
-            className="input"
-            maxLength={150}
-            value={routine.title}
-            onChange={(event) => set("title", event.target.value)}
-            placeholder="Ex.: Conferir backup"
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`routine-location-${routine.id}`}>
-            Local
-          </label>
-          <Select
-            id={`routine-location-${routine.id}`}
-            className="compact"
-            name="local"
-            value={routine.location}
-            options={locationOptions}
-            onChange={(event) => set("location", event.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`routine-frequency-${routine.id}`}>
-            Frequência
-          </label>
-          <Select
-            id={`routine-frequency-${routine.id}`}
-            className="compact"
-            name="frequencia"
-            value={routine.frequency}
-            options={FREQUENCIES}
-            onChange={(event) =>
-              update((next) => {
-                const target = next.routines[index];
-                target.frequency = event.target.value;
-                // Valores iniciais ao trocar a frequência.
-                if (target.frequency === "weekly" && !target.weekdays?.length) target.weekdays = [1];
-                if (target.frequency === "monthly" && !target.monthDay) target.monthDay = 1;
-              })
-            }
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`routine-time-${routine.id}`}>
-            Horário de abertura
-          </label>
-          <input
-            id={`routine-time-${routine.id}`}
-            className="input"
-            type="time"
-            value={routine.time}
-            onChange={(event) => set("time", event.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor={`routine-priority-${routine.id}`}>
-            Prioridade
-          </label>
-          <Select
-            id={`routine-priority-${routine.id}`}
-            className="compact"
-            name="prioridade"
-            value={routine.priority}
-            options={PRIORITIES}
-            onChange={(event) => set("priority", event.target.value)}
-          />
-        </div>
-
-        {routine.frequency === "monthly" ? (
-          <div className="field">
-            <label className="field-label" htmlFor={`routine-day-${routine.id}`}>
-              Dia do mês
-            </label>
-            <input
-              id={`routine-day-${routine.id}`}
-              className="input"
-              type="number"
-              min={1}
-              max={31}
-              value={routine.monthDay ?? 1}
-              onChange={(event) => set("monthDay", Number(event.target.value))}
-            />
-          </div>
-        ) : null}
-      </div>
-
-      {routine.frequency === "weekly" ? (
-        <div className="field">
-          <span className="field-label">Dias da semana</span>
-          <WeekdayPicker
-            label="Dias da semana da rotina"
-            value={routine.weekdays ?? []}
-            onChange={(days) => set("weekdays", days)}
-          />
-        </div>
-      ) : null}
-
-      <div className="field">
-        <label className="field-label" htmlFor={`routine-description-${routine.id}`}>
-          Descrição
-        </label>
-        <textarea
-          id={`routine-description-${routine.id}`}
-          className="input routine-description"
-          maxLength={500}
-          value={routine.description}
-          onChange={(event) => set("description", event.target.value)}
-          placeholder="O que deve ser feito nesta rotina"
-        />
-      </div>
-    </article>
-  );
-}
-
-function RoutinesTab({ draft, update }) {
-  return (
-    <div className="settings-stack">
-      <p className="field-hint">
-        Rotinas abrem chamados automaticamente, visíveis só para administradores. Quando uma nova ocorrência é
-        aberta, a anterior que ficou aberta é encerrada. Rotinas não entram no relatório de SLA.
-      </p>
-
-      {draft.routines.map((routine, index) => (
-        <RoutineCard
-          key={routine.id}
-          routine={routine}
-          index={index}
-          locations={draft.catalog.locations}
-          update={update}
-        />
-      ))}
-
-      {!draft.routines.length ? (
-        <div className="empty-state">
-          <h3>Nenhuma rotina cadastrada</h3>
-          <p>Cadastre tarefas recorrentes da equipe de TI, como conferir backups.</p>
-        </div>
-      ) : null}
-
-      <div>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => update((next) => next.routines.push(newRoutine()))}
-        >
-          Adicionar rotina
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function SettingsModal({ isOpen = true, onClose }) {
   const { settings, options, reload, save } = useSettings();
   const [tab, setTab] = useState("branding");
@@ -635,7 +426,6 @@ function SettingsModal({ isOpen = true, onClose }) {
           {tab === "catalog" ? <CatalogTab {...tabProps} /> : null}
           {tab === "sla" ? <SlaTab {...tabProps} /> : null}
           {tab === "holidays" ? <HolidaysTab {...tabProps} movableOptions={options.movableHolidays} /> : null}
-          {tab === "routines" ? <RoutinesTab {...tabProps} /> : null}
         </div>
       )}
     </Modal>

@@ -24,5 +24,4 @@ export const DEFAULT_SETTINGS = {
     movable: [],
     extra: [],
   },
-  routines: [],
 };

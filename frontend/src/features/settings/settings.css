@@ -187,28 +187,6 @@
   accent-color: var(--brand-primary);
 }
 
-/* Rotinas */
-
-.routine-card {
-  display: grid;
-  gap: 14px;
-  padding: 18px;
-  border-radius: var(--radius-lg);
-  background: var(--surface-1);
-  border: 1px solid var(--border-subtle);
-}
-
-.routine-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-textarea.routine-description {
-  min-height: 70px;
-}
-
 @media (max-width: 768px) {
   .settings-grid,
   .settings-grid-3 {

@@ -41,8 +41,7 @@ const novoChamado = (assunto = "Impressora parada") => ({
   problema: "Nao imprime",
 });
 
-// Configuração usada nos testes (locais, categorias, SLA e 4 rotinas diárias).
-const TEST_ROUTINE_TITLES = ["Backup", "Biometria", "Unidades externas", "Impressoras"];
+// Configuração usada nos testes (locais, categorias e SLA).
 const testSettings = () => ({
   branding: {
     appName: "ClickHELP",
@@ -58,15 +57,6 @@ const testSettings = () => ({
     hoursByPriority: { alta: 48, media: 48, baixa: 48 },
   },
   holidays: { national: true, movable: [], extra: [] },
-  routines: TEST_ROUTINE_TITLES.map((title, index) => ({
-    id: `rotina-${index + 1}`,
-    title,
-    location: "ORV",
-    priority: "media",
-    time: "07:30",
-    frequency: "daily",
-    active: true,
-  })),
 });
 
 let adminToken;
@@ -356,36 +346,6 @@ describe("gestao de usuarios", () => {
   });
 });
 
-describe("rotinas diarias", () => {
-  test("cria as rotinas do dia e encerra as de dias anteriores", async () => {
-    const { ensureRoutineTickets: ensureFixedDailyChamados } =
-      await import("../src/modules/tickets/routines.service.js");
-
-    // Quarta 11/11/2026 08:00 e depois quinta 12/11/2026 08:00 (horário local).
-    await ensureFixedDailyChamados(new Date(2026, 10, 11, 8, 0));
-    await ensureFixedDailyChamados(new Date(2026, 10, 12, 8, 0));
-
-    const { data } = await api("GET", "/chamados", { token: adminToken });
-    const rotinas = data.chamados.filter((item) => item.isFixedRoutine);
-    const quarta = rotinas.filter((item) => item.fixedRoutineDateKey === "2026-11-11");
-    const quinta = rotinas.filter((item) => item.fixedRoutineDateKey === "2026-11-12");
-
-    assert.equal(quarta.length, 4);
-    assert.ok(quarta.every((item) => item.status === "Fechado" && item.autoClosed));
-    assert.equal(quinta.length, 4);
-    assert.ok(quinta.every((item) => item.status === "Aberto"));
-  });
-
-  test("nao duplica rotinas com chamadas repetidas", async () => {
-    const { ensureRoutineTickets: ensureFixedDailyChamados } =
-      await import("../src/modules/tickets/routines.service.js");
-    await Promise.all([1, 2, 3].map(() => ensureFixedDailyChamados(new Date(2026, 10, 12, 9, 0))));
-
-    const { data } = await api("GET", "/chamados", { token: adminToken });
-    assert.equal(data.chamados.filter((item) => item.fixedRoutineDateKey === "2026-11-12").length, 4);
-  });
-});
-
 describe("notificacoes (ajustes)", () => {
   test("quem e da TI e abre um chamado nao recebe o aviso de novo chamado", async () => {
     const { data } = await api("POST", "/chamados", {
@@ -514,49 +474,6 @@ describe("configuracoes da empresa", () => {
     const horasUteis = (new Date(data.chamado.dataLimite) - new Date(data.chamado.dataCriacao)) / 3600000;
     // Dentro do expediente o prazo é exatamente 2h; fora dele, começa no próximo expediente.
     assert.ok(horasUteis <= 2 || new Date(data.chamado.dataLimite).getHours() <= 10);
-
-    await api("PUT", "/settings", { token: adminToken, body: testSettings() });
-  });
-
-  test("rotina semanal e mensal so geram chamado no dia certo", async () => {
-    const { ensureRoutineTickets } = await import("../src/modules/tickets/routines.service.js");
-    const config = testSettings();
-    config.routines = [
-      {
-        id: "semanal",
-        title: "Semanal",
-        location: "ORV",
-        priority: "baixa",
-        time: "09:00",
-        frequency: "weekly",
-        weekdays: [1],
-      },
-      {
-        id: "mensal",
-        title: "Mensal",
-        location: "ORV",
-        priority: "baixa",
-        time: "09:00",
-        frequency: "monthly",
-        monthDay: 31,
-      },
-    ];
-    await api("PUT", "/settings", { token: adminToken, body: config });
-
-    await ensureRoutineTickets(new Date(2026, 10, 17, 10, 0)); // terça: nenhuma
-    await ensureRoutineTickets(new Date(2026, 10, 16, 8, 0)); // segunda antes das 9h: nenhuma
-    await ensureRoutineTickets(new Date(2026, 10, 16, 9, 30)); // segunda: semanal
-    await ensureRoutineTickets(new Date(2026, 10, 30, 9, 30)); // 30/11 (último dia): mensal
-
-    const { data } = await api("GET", "/chamados", { token: adminToken });
-    const datas = (id) =>
-      data.chamados
-        .filter((item) => item.fixedRoutineCode === id)
-        .map((item) => item.fixedRoutineDateKey)
-        .sort();
-    // 30/11/2026 também é segunda-feira, então a semanal roda de novo nesse dia.
-    assert.deepEqual(datas("semanal"), ["2026-11-16", "2026-11-30"]);
-    assert.deepEqual(datas("mensal"), ["2026-11-30"]);
 
     await api("PUT", "/settings", { token: adminToken, body: testSettings() });
   });
