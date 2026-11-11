@@ -1,7 +1,6 @@
+import { config } from "./config.js";
 import app from "./app.js";
 
-const port = Number(process.env.PORT) || 3001;
-
-app.listen(port, () => {
-  console.log(`ClickHELP Backend rodando em http://localhost:${port}`);
+app.listen(config.port, () => {
+  console.log(`ClickHELP Backend rodando em http://localhost:${config.port}`);
 });

@@ -1,27 +1,26 @@
 import crypto from "node:crypto";
-import fs from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { badRequest, notFound } from "../lib/httpError.js";
+import { createJsonStore } from "../lib/jsonStore.js";
+import { ROLE_ADMIN, TI_ROLES } from "../lib/roles.js";
+import { buildSlaLimitFromDate, formatDateKey, isBusinessDay } from "../lib/sla.js";
+import { createNotification } from "./notificationService.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const STORE_PATH = path.resolve(__dirname, "../data/chamadosStore.json");
-const WORK_START_HOUR = 8;
-const WORK_END_HOUR = 18;
-const SLA_BUSINESS_HOURS = 48;
+const store = createJsonStore("chamadosStore.json");
+
+export const STATUS_ABERTO = "Aberto";
+export const STATUS_EM_ANDAMENTO = "Em andamento";
+export const STATUS_FECHADO = "Fechado";
+export const VALID_STATUSES = [STATUS_ABERTO, STATUS_EM_ANDAMENTO, STATUS_FECHADO];
+export const VALID_PRIORIDADES = ["baixa", "media", "alta"];
+
+const MAX_ASSUNTO = 150;
+const MAX_LOCAL = 60;
+const MAX_PROBLEMA = 5000;
+const MAX_RESPOSTA = 5000;
+
 const FIXED_ROUTINE_START_HOUR = 7;
 const FIXED_ROUTINE_START_MINUTE = 30;
 const ADMIN_ONLY_VISIBILITY = "admin-only";
-const FIXED_NATIONAL_HOLIDAYS = new Set([
-  "01-01",
-  "04-21",
-  "05-01",
-  "09-07",
-  "10-12",
-  "11-02",
-  "11-15",
-  "11-20",
-  "12-25",
-]);
 const FIXED_ADMIN_REQUESTS = [
   {
     code: "backup-diario-incremental",
@@ -53,140 +52,20 @@ const FIXED_ADMIN_REQUESTS = [
   },
 ];
 
-const ensureStoreFile = async () => {
-  try {
-    await fs.access(STORE_PATH);
-  } catch {
-    await fs.mkdir(path.dirname(STORE_PATH), { recursive: true });
-    await fs.writeFile(STORE_PATH, "[]", "utf8");
-  }
-};
-
-const readChamados = async () => {
-  await ensureStoreFile();
-
-  try {
-    const rawValue = await fs.readFile(STORE_PATH, "utf8");
-    const parsed = JSON.parse(rawValue);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeChamados = async (chamados) => {
-  await ensureStoreFile();
-  await fs.writeFile(STORE_PATH, JSON.stringify(chamados, null, 2), "utf8");
-};
-
-const formatMonthDay = (date) =>
-  `${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-
-const formatDateKey = (date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-
 const normalizeText = (value) => String(value ?? "").trim().toLowerCase();
 
-const calculateEasterSunday = (year) => {
-  const a = year % 19;
-  const b = Math.floor(year / 100);
-  const c = year % 100;
-  const d = Math.floor(b / 4);
-  const e = b % 4;
-  const f = Math.floor((b + 8) / 25);
-  const g = Math.floor((b - f + 1) / 3);
-  const h = (19 * a + b - d - g + 15) % 30;
-  const i = Math.floor(c / 4);
-  const k = c % 4;
-  const l = (32 + 2 * e + 2 * i - h - k) % 7;
-  const m = Math.floor((a + 11 * h + 22 * l) / 451);
-  const month = Math.floor((h + l - 7 * m + 114) / 31);
-  const day = ((h + l - 7 * m + 114) % 31) + 1;
+const requireText = (value, label, maxLength) => {
+  const text = String(value ?? "").trim();
 
-  return new Date(year, month - 1, day);
-};
-
-const getDynamicNationalHolidayKeys = (year) => {
-  const easterSunday = calculateEasterSunday(year);
-  const goodFriday = new Date(easterSunday);
-  goodFriday.setDate(easterSunday.getDate() - 2);
-
-  return new Set([formatMonthDay(goodFriday)]);
-};
-
-const isNationalHoliday = (date) => {
-  const monthDay = formatMonthDay(date);
-
-  if (FIXED_NATIONAL_HOLIDAYS.has(monthDay)) {
-    return true;
+  if (!text) {
+    throw badRequest("Preencha todos os campos obrigatorios antes de enviar.");
   }
 
-  return getDynamicNationalHolidayKeys(date.getFullYear()).has(monthDay);
-};
-
-const isBusinessDay = (date) => {
-  const day = date.getDay();
-  return day >= 1 && day <= 5 && !isNationalHoliday(date);
-};
-
-const moveToNextBusinessDayStart = (date) => {
-  const nextDate = new Date(date);
-
-  do {
-    nextDate.setDate(nextDate.getDate() + 1);
-  } while (!isBusinessDay(nextDate));
-
-  nextDate.setHours(WORK_START_HOUR, 0, 0, 0);
-  return nextDate;
-};
-
-const normalizeToBusinessWindow = (date) => {
-  const normalized = new Date(date);
-
-  if (!isBusinessDay(normalized)) {
-    while (!isBusinessDay(normalized)) {
-      normalized.setDate(normalized.getDate() + 1);
-    }
-
-    normalized.setHours(WORK_START_HOUR, 0, 0, 0);
-    return normalized;
+  if (text.length > maxLength) {
+    throw badRequest(`O campo ${label} aceita no maximo ${maxLength} caracteres.`);
   }
 
-  const hour = normalized.getHours();
-
-  if (hour < WORK_START_HOUR) {
-    normalized.setHours(WORK_START_HOUR, 0, 0, 0);
-    return normalized;
-  }
-
-  if (hour >= WORK_END_HOUR) {
-    return moveToNextBusinessDayStart(normalized);
-  }
-
-  return normalized;
-};
-
-const buildSlaLimitFromDate = (baseDateInput) => {
-  let current = normalizeToBusinessWindow(new Date(baseDateInput));
-  let remainingHours = SLA_BUSINESS_HOURS;
-
-  while (remainingHours > 0) {
-    const endOfWorkday = new Date(current);
-    endOfWorkday.setHours(WORK_END_HOUR, 0, 0, 0);
-
-    const availableHoursToday = (endOfWorkday.getTime() - current.getTime()) / (1000 * 60 * 60);
-
-    if (remainingHours <= availableHoursToday) {
-      current = new Date(current.getTime() + remainingHours * 60 * 60 * 1000);
-      remainingHours = 0;
-      break;
-    }
-
-    remainingHours -= availableHoursToday;
-    current = moveToNextBusinessDayStart(current);
-  }
-
-  return current.toISOString();
+  return text;
 };
 
 const buildFixedRoutineLaunchDate = (date) => {
@@ -195,18 +74,8 @@ const buildFixedRoutineLaunchDate = (date) => {
   return launchDate;
 };
 
-const shouldGenerateFixedDailyChamados = (referenceDate) => {
-  if (!isBusinessDay(referenceDate)) {
-    return false;
-  }
-
-  const launchDate = buildFixedRoutineLaunchDate(referenceDate);
-  return referenceDate.getTime() >= launchDate.getTime();
-};
-
 const createFixedChamado = (template, referenceDate) => {
-  const launchDate = buildFixedRoutineLaunchDate(referenceDate);
-  const launchDateIso = launchDate.toISOString();
+  const launchDateIso = buildFixedRoutineLaunchDate(referenceDate).toISOString();
 
   return {
     id: crypto.randomUUID(),
@@ -216,7 +85,7 @@ const createFixedChamado = (template, referenceDate) => {
     prioridade: template.prioridade,
     problema: template.problema,
     userId: null,
-    status: "Aberto",
+    status: STATUS_ABERTO,
     resposta: "",
     dataCriacao: launchDateIso,
     dataAtualizacao: launchDateIso,
@@ -224,141 +93,185 @@ const createFixedChamado = (template, referenceDate) => {
     visibility: ADMIN_ONLY_VISIBILITY,
     isFixedRoutine: true,
     fixedRoutineCode: template.code,
-    fixedRoutineDateKey: formatDateKey(launchDate),
+    fixedRoutineDateKey: formatDateKey(referenceDate),
   };
 };
 
-const normalizeFixedChamado = (item) => {
-  if (!item?.isFixedRoutine || !item.fixedRoutineCode) {
-    return item;
-  }
+/** Cria (uma única vez por dia útil, a partir das 7h30) as rotinas fixas do admin. */
+const ensureFixedDailyChamados = () =>
+  store.update((items) => {
+    const now = new Date();
 
-  const template = FIXED_ADMIN_REQUESTS.find((entry) => entry.code === item.fixedRoutineCode);
-
-  if (!template) {
-    return item;
-  }
-
-  return {
-    ...item,
-    assunto: template.assunto,
-    solicitante: "Admin",
-    local: template.local,
-    prioridade: template.prioridade,
-    problema: template.problema,
-    visibility: ADMIN_ONLY_VISIBILITY,
-  };
-};
-
-const ensureFixedDailyChamados = async (items) => {
-  const normalizedChamados = items.map(normalizeFixedChamado);
-  const hasNormalizationChanges = normalizedChamados.some((item, index) => item !== items[index]);
-  const referenceDate = new Date();
-
-  if (!shouldGenerateFixedDailyChamados(referenceDate)) {
-    if (hasNormalizationChanges) {
-      await writeChamados(normalizedChamados);
+    if (!isBusinessDay(now) || now < buildFixedRoutineLaunchDate(now)) {
+      return { items: null, result: null };
     }
 
-    return normalizedChamados;
+    const dateKey = formatDateKey(now);
+    const missing = FIXED_ADMIN_REQUESTS.filter(
+      (template) =>
+        !items.some(
+          (item) =>
+            item.isFixedRoutine &&
+            item.fixedRoutineCode === template.code &&
+            item.fixedRoutineDateKey === dateKey
+        )
+    ).map((template) => createFixedChamado(template, now));
+
+    return { items: missing.length ? [...missing, ...items] : null, result: null };
+  });
+
+const canSeeChamado = (chamado, user) => {
+  if (chamado.visibility === ADMIN_ONLY_VISIBILITY) {
+    return user.role === ROLE_ADMIN;
   }
 
-  const routineDateKey = formatDateKey(referenceDate);
-  const missingChamados = FIXED_ADMIN_REQUESTS.filter(
-    (template) =>
-      !normalizedChamados.some(
-        (item) =>
-          item.isFixedRoutine &&
-          item.fixedRoutineCode === template.code &&
-          item.fixedRoutineDateKey === routineDateKey
-      )
-  ).map((template) => createFixedChamado(template, referenceDate));
-
-  if (!missingChamados.length) {
-    if (hasNormalizationChanges) {
-      await writeChamados(normalizedChamados);
-    }
-
-    return normalizedChamados;
+  if (TI_ROLES.includes(user.role)) {
+    return true;
   }
 
-  const updatedChamados = [...missingChamados, ...normalizedChamados];
-  await writeChamados(updatedChamados);
-  return updatedChamados;
+  return normalizeText(chamado.solicitante) === normalizeText(user.username);
 };
 
-const sortChamadosByNewest = (items) =>
+const sortByNewest = (items) =>
   [...items].sort((first, second) => new Date(second.dataCriacao) - new Date(first.dataCriacao));
 
-export const listChamados = async ({ role, solicitante } = {}) => {
-  const chamados = await readChamados();
-  const calledWithFixedRoutines = await ensureFixedDailyChamados(chamados);
-  const visibleChamados = calledWithFixedRoutines.filter(
-    (item) => item.visibility !== ADMIN_ONLY_VISIBILITY || role === "Administrador"
-  );
-
-  const filteredChamados = solicitante
-    ? visibleChamados.filter((item) => normalizeText(item.solicitante) === normalizeText(solicitante))
-    : visibleChamados;
-
-  return sortChamadosByNewest(filteredChamados);
+/** Lista os chamados que o usuário autenticado pode ver. */
+export const listChamados = async (user) => {
+  await ensureFixedDailyChamados();
+  const chamados = await store.read();
+  return sortByNewest(chamados.filter((item) => canSeeChamado(item, user)));
 };
 
-export const createChamado = async ({
-  assunto,
-  solicitante,
-  local,
-  prioridade,
-  problema,
-  userId = null,
-}) => {
-  const trimmedAssunto = String(assunto ?? "").trim();
-  const trimmedSolicitante = String(solicitante ?? "").trim();
-  const trimmedLocal = String(local ?? "").trim();
-  const trimmedPrioridade = String(prioridade ?? "").trim();
-  const trimmedProblema = String(problema ?? "").trim();
+export const createChamado = async (data, user) => {
+  const assunto = requireText(data.assunto, "assunto", MAX_ASSUNTO);
+  const local = requireText(data.local, "local", MAX_LOCAL);
+  const problema = requireText(data.problema, "problema", MAX_PROBLEMA);
+  const prioridade = normalizeText(data.prioridade);
 
-  if (!trimmedAssunto || !trimmedSolicitante || !trimmedLocal || !trimmedPrioridade || !trimmedProblema) {
-    throw new Error("Preencha todos os campos obrigatorios antes de enviar.");
+  if (!VALID_PRIORIDADES.includes(prioridade)) {
+    throw badRequest("Selecione uma prioridade valida.");
   }
 
-  const chamados = await readChamados();
   const now = new Date().toISOString();
   const chamado = {
     id: crypto.randomUUID(),
-    assunto: trimmedAssunto,
-    solicitante: trimmedSolicitante,
-    local: trimmedLocal,
-    prioridade: trimmedPrioridade,
-    problema: trimmedProblema,
-    userId,
-    status: "Aberto",
+    assunto,
+    solicitante: user.username,
+    local,
+    prioridade,
+    problema,
+    userId: user.id,
+    status: STATUS_ABERTO,
     resposta: "",
     dataCriacao: now,
     dataAtualizacao: now,
     dataLimite: buildSlaLimitFromDate(now),
   };
 
-  chamados.unshift(chamado);
-  await writeChamados(chamados);
+  await store.update((items) => ({ items: [chamado, ...items], result: null }));
+
+  await createNotification({
+    type: "solicitacao-enviada",
+    title: "Solicitação enviada",
+    message: `Seu chamado "${assunto}" foi registrado com sucesso no ClickHELP.`,
+    recipients: { usernames: [user.username] },
+    context: { chamadoId: chamado.id },
+  });
+
+  await createNotification({
+    type: "novo-chamado-ti",
+    title: "Nova solicitação recebida",
+    message: `${user.username} abriu o chamado "${assunto}" e aguarda atendimento da equipe de TI.`,
+    recipients: { roles: TI_ROLES },
+    context: { chamadoId: chamado.id },
+  });
+
   return chamado;
 };
 
-export const updateChamado = async (id, updates = {}) => {
-  const chamados = await readChamados();
-  const chamadoIndex = chamados.findIndex((item) => item.id === id);
+/**
+ * Atualiza status e/ou resposta de um chamado. Só os campos `status` e
+ * `resposta` são aceitos; datas de fechamento, responsável e SLA são
+ * calculados aqui no servidor.
+ */
+export const updateChamado = async (id, data, user) => {
+  const hasStatus = data.status !== undefined;
+  const hasResposta = data.resposta !== undefined;
 
-  if (chamadoIndex === -1) {
-    return null;
+  if (!hasStatus && !hasResposta) {
+    throw badRequest("Informe o status ou a resposta do chamado.");
   }
 
-  const updatedChamado = {
-    ...chamados[chamadoIndex],
-    ...updates,
-    dataAtualizacao: new Date().toISOString(),
-  };
+  if (hasStatus && !VALID_STATUSES.includes(data.status)) {
+    throw badRequest("Status invalido.");
+  }
 
-  chamados[chamadoIndex] = updatedChamado;
-  await writeChamados(chamados);
-  return updatedChamado;
+  if (hasResposta && typeof data.resposta !== "string") {
+    throw badRequest("Resposta invalida.");
+  }
+
+  if (hasResposta && data.resposta.length > MAX_RESPOSTA) {
+    throw badRequest(`A resposta aceita no maximo ${MAX_RESPOSTA} caracteres.`);
+  }
+
+  const { previous, updated } = await store.update((items) => {
+    const index = items.findIndex((item) => item.id === id);
+
+    if (index === -1 || !canSeeChamado(items[index], user)) {
+      throw notFound("Chamado nao encontrado.");
+    }
+
+    const current = items[index];
+    const nextStatus = hasStatus ? data.status : current.status;
+    const nextResposta = hasResposta ? data.resposta.trim() : current.resposta ?? "";
+    const now = new Date();
+    const next = {
+      ...current,
+      status: nextStatus,
+      resposta: nextResposta,
+      dataAtualizacao: now.toISOString(),
+    };
+
+    if (nextStatus === STATUS_FECHADO && current.status !== STATUS_FECHADO) {
+      if (!nextResposta) {
+        throw badRequest("Escreva a resposta da TI antes de fechar o chamado.");
+      }
+
+      next.dataFechamento = now.toISOString();
+      next.closedByUsername = user.username;
+      next.closedByName = user.name;
+      next.closedByRole = user.role;
+      next.slaViolado = current.dataLimite ? new Date(current.dataLimite) < now : false;
+    }
+
+    if (nextStatus !== STATUS_FECHADO && current.status === STATUS_FECHADO) {
+      delete next.dataFechamento;
+      delete next.closedByUsername;
+      delete next.closedByName;
+      delete next.closedByRole;
+      delete next.slaViolado;
+    }
+
+    const nextItems = [...items];
+    nextItems[index] = next;
+    return { items: nextItems, result: { previous: current, updated: next } };
+  });
+
+  const statusChanged = previous.status !== updated.status;
+
+  if (
+    statusChanged &&
+    [STATUS_EM_ANDAMENTO, STATUS_FECHADO].includes(updated.status) &&
+    !updated.isFixedRoutine
+  ) {
+    await createNotification({
+      type: "status-chamado-atualizado",
+      title: `Chamado ${updated.status === STATUS_FECHADO ? "fechado" : "em andamento"}`,
+      message: `Sua solicitação "${updated.assunto}" foi atualizada para "${updated.status}".`,
+      recipients: { usernames: [updated.solicitante] },
+      context: { chamadoId: updated.id, status: updated.status },
+    });
+  }
+
+  return updated;
 };

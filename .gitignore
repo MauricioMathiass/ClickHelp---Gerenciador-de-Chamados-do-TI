@@ -14,7 +14,8 @@ dist/
 npm-debug.log*
 
 # Base de dados local do backend
-Backend/src/data/chamadosStore.json
+Backend/src/data/*.json
+*.tmp
 
 # Sistema / editores
 .DS_Store

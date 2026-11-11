@@ -1,13 +1,23 @@
 import { useEffect, useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import ModalBase from "./ModalBase";
+import CustomSelect from "../Common/CustomSelect";
 import { buildDisplayUsernamePreview, createUser } from "../../services/auth";
+
+const MIN_PASSWORD_LENGTH = 6;
+const ROLE_OPTIONS = [
+  { value: "Usuario", label: "Usuário" },
+  { value: "Analista de TI", label: "Analista de TI" },
+  { value: "Administrador", label: "Administrador" },
+];
 
 function ModalNovoUsuario({ isOpen, onClose }) {
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("Usuario");
+  const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [feedbackType, setFeedbackType] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,6 +30,7 @@ function ModalNovoUsuario({ isOpen, onClose }) {
       setSurname("");
       setPassword("");
       setConfirmPassword("");
+      setRole("Usuario");
       setFeedback("");
       setFeedbackType("");
       setShowPassword(false);
@@ -31,38 +42,50 @@ function ModalNovoUsuario({ isOpen, onClose }) {
     event.preventDefault();
 
     if (!name.trim() || !surname.trim() || !password.trim() || !confirmPassword.trim()) {
-      setFeedback("Preencha todos os campos obrigatorios.");
+      setFeedback("Preencha todos os campos obrigatórios.");
+      setFeedbackType("error");
+      return;
+    }
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setFeedback(`A senha precisa ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`);
       setFeedbackType("error");
       return;
     }
 
     if (password !== confirmPassword) {
-      setFeedback("A confirmacao de senha precisa ser igual a senha informada.");
+      setFeedback("A confirmação de senha precisa ser igual à senha informada.");
       setFeedbackType("error");
       return;
     }
+
+    setIsSaving(true);
 
     try {
       const createdUser = await createUser({
         name,
         surname,
         password,
+        role,
       });
 
-      setFeedback(`Usuario cadastrado com sucesso. Login gerado: ${createdUser.username}`);
+      setFeedback(`Usuário cadastrado com sucesso. Login gerado: ${createdUser.username}`);
       setFeedbackType("success");
       setName("");
       setSurname("");
       setPassword("");
       setConfirmPassword("");
+      setRole("Usuario");
     } catch (error) {
-      setFeedback(error.message || "Nao foi possivel cadastrar o usuario.");
+      setFeedback(error.message || "Não foi possível cadastrar o usuário.");
       setFeedbackType("error");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
-    <ModalBase isOpen={isOpen} onClose={onClose} title="Cadastrar novo usuario">
+    <ModalBase isOpen={isOpen} onClose={onClose} title="Cadastrar novo usuário">
       <form className="admin-user-form" onSubmit={handleSubmit}>
         <div className="admin-user-grid">
           <div className="admin-user-field">
@@ -88,13 +111,25 @@ function ModalNovoUsuario({ isOpen, onClose }) {
           </div>
 
           <div className="admin-user-field">
-            <label htmlFor="novo-usuario-exibicao">Nome de exibicao</label>
+            <label htmlFor="novo-usuario-exibicao">Login (gerado automaticamente)</label>
             <input
               id="novo-usuario-exibicao"
               type="text"
               value={displayUsername}
               placeholder="nome.sobrenome"
               readOnly
+            />
+          </div>
+
+          <div className="admin-user-field">
+            <label htmlFor="novo-usuario-perfil">Perfil</label>
+            <CustomSelect
+              id="novo-usuario-perfil"
+              className="compact"
+              name="perfil"
+              value={role}
+              options={ROLE_OPTIONS}
+              onChange={(event) => setRole(event.target.value)}
             />
           </div>
 
@@ -106,7 +141,7 @@ function ModalNovoUsuario({ isOpen, onClose }) {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Crie uma senha"
+                placeholder={`Mínimo de ${MIN_PASSWORD_LENGTH} caracteres`}
               />
               <button
                 type="button"
@@ -148,8 +183,8 @@ function ModalNovoUsuario({ isOpen, onClose }) {
         ) : null}
 
         <div className="admin-user-actions">
-          <button type="submit" className="modal-primary-action">
-            Cadastrar usuario
+          <button type="submit" className="modal-primary-action" disabled={isSaving}>
+            {isSaving ? "Cadastrando..." : "Cadastrar usuário"}
           </button>
         </div>
       </form>

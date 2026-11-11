@@ -1,42 +1,48 @@
+import { config } from "../config.js";
+import { badRequest, unauthorized } from "../lib/httpError.js";
+import { signToken } from "../lib/security.js";
 import { createUser, findUserByCredentials, sanitizeUser } from "../services/userService.js";
 
-export const login = (req, res) => {
-  const { username, password } = req.body ?? {};
+const SESSION_TTL_SECONDS = 12 * 60 * 60; // 12 horas
+const REMEMBER_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 dias
+
+// Express 5 encaminha erros de funções async para o tratador de erros.
+export const login = async (req, res) => {
+  const { username, password, rememberMe } = req.body ?? {};
 
   if (!String(username ?? "").trim() || !String(password ?? "").trim()) {
-    return res.status(400).json({
-      message: "Preencha usuario e senha.",
-    });
+    throw badRequest("Preencha usuario e senha.");
   }
 
-  const user = findUserByCredentials({ username, password });
+  const user = await findUserByCredentials({ username, password });
 
   if (!user) {
-    return res.status(401).json({
-      message: "Usuario ou senha invalidos.",
-    });
+    throw unauthorized("Usuario ou senha invalidos.");
   }
 
-  return res.status(200).json({
+  const publicUser = sanitizeUser(user);
+  const token = signToken(
+    { sub: publicUser.id, ...publicUser },
+    config.jwtSecret,
+    rememberMe ? REMEMBER_TTL_SECONDS : SESSION_TTL_SECONDS
+  );
+
+  res.status(200).json({
     message: "Login realizado com sucesso.",
-    token: `backend-token-${user.id}-${Date.now()}`,
-    user: sanitizeUser(user),
+    token,
+    user: publicUser,
   });
 };
 
-export const registerUser = (req, res) => {
-  const { name, surname, password } = req.body ?? {};
+export const me = (req, res) => {
+  res.status(200).json({ user: req.user });
+};
 
-  try {
-    const user = createUser({ name, surname, password });
+export const registerUser = async (req, res) => {
+  const user = await createUser(req.body ?? {});
 
-    return res.status(201).json({
-      message: "Usuario cadastrado com sucesso.",
-      user: sanitizeUser(user),
-    });
-  } catch (error) {
-    return res.status(400).json({
-      message: error.message || "Nao foi possivel cadastrar o usuario.",
-    });
-  }
+  res.status(201).json({
+    message: "Usuario cadastrado com sucesso.",
+    user: sanitizeUser(user),
+  });
 };

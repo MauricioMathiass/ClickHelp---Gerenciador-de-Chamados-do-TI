@@ -44,7 +44,7 @@ function buildCalendarDays(baseMonth) {
   });
 }
 
-function CustomDatePicker({ name, onChange, placeholder = "dd/mm/aaaa", value }) {
+function CustomDatePicker({ id, name, onChange, placeholder = "dd/mm/aaaa", value }) {
   const [isOpen, setIsOpen] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState(() => parseDateValue(value) ?? new Date());
   const containerRef = useRef(null);
@@ -116,6 +116,7 @@ function CustomDatePicker({ name, onChange, placeholder = "dd/mm/aaaa", value })
     >
       <button
         type="button"
+        id={id}
         className="custom-date-trigger"
         onClick={() => setIsOpen((current) => !current)}
         aria-expanded={isOpen}

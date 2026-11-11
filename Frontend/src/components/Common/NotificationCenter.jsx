@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import "./NotificationCenter.css";
-import {
-  getPendingNotificationsForSession,
-  markNotificationsAsSeen,
-  subscribeNotifications,
-} from "../../services/notifications";
+import { readToastedIds, saveToastedIds, subscribeNotifications } from "../../services/notifications";
 
 const TOAST_DURATION_MS = 6000;
+const MAX_VISIBLE_TOASTS = 4;
 
 const playNotificationSound = async (audioContextRef) => {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -44,11 +41,32 @@ const playNotificationSound = async (audioContextRef) => {
   oscillator.stop(startTime + 0.36);
 };
 
+const showBrowserNotification = (notification) => {
+  if (
+    document.visibilityState === "visible" ||
+    typeof Notification === "undefined" ||
+    Notification.permission !== "granted"
+  ) {
+    return;
+  }
+
+  const browserNotification = new Notification(notification.title, {
+    body: notification.message,
+    tag: notification.id,
+  });
+
+  browserNotification.onclick = () => {
+    window.focus();
+    browserNotification.close();
+  };
+};
+
+/** Exibe "toasts" para notificações novas (não lidas e ainda não exibidas neste navegador). */
 function NotificationCenter({ session }) {
   const [toasts, setToasts] = useState([]);
   const audioContextRef = useRef(null);
-  const shownIdsRef = useRef(new Set());
   const timeoutIdsRef = useRef(new Map());
+  const username = session?.user?.username;
 
   const removeToast = (toastId) => {
     setToasts((current) => current.filter((toast) => toast.id !== toastId));
@@ -61,72 +79,51 @@ function NotificationCenter({ session }) {
   };
 
   useEffect(() => {
-    shownIdsRef.current = new Set();
     setToasts([]);
-  }, [session?.user?.username]);
 
-  useEffect(() => {
-    if (!session?.user) {
+    if (!username) {
       return undefined;
     }
 
-    const processNotifications = () => {
-      const pendingNotifications = getPendingNotificationsForSession(session).filter(
-        (notification) => !shownIdsRef.current.has(notification.id)
-      );
+    const timeoutIds = timeoutIdsRef.current;
 
-      if (!pendingNotifications.length) {
+    const handleState = ({ notifications }) => {
+      const toastedIds = readToastedIds(username);
+      const fresh = notifications.filter((item) => !item.read && !toastedIds.has(item.id));
+
+      if (!fresh.length) {
         return;
       }
 
-      pendingNotifications.forEach((notification) => {
-        shownIdsRef.current.add(notification.id);
-
-        setToasts((current) => {
-          const nextToasts = [notification, ...current.filter((toast) => toast.id !== notification.id)];
-          return nextToasts.slice(0, 4);
-        });
-
-        const timeoutId = window.setTimeout(() => {
-          removeToast(notification.id);
-        }, TOAST_DURATION_MS);
-
-        timeoutIdsRef.current.set(notification.id, timeoutId);
-
-        playNotificationSound(audioContextRef).catch(() => {});
-
-        if (document.visibilityState !== "visible" && typeof Notification !== "undefined") {
-          if (Notification.permission === "granted") {
-            const browserNotification = new Notification(notification.title, {
-              body: notification.message,
-              tag: notification.id,
-            });
-
-            browserNotification.onclick = () => {
-              window.focus();
-              browserNotification.close();
-            };
-          }
-        }
+      fresh.forEach((notification) => {
+        toastedIds.add(notification.id);
+        timeoutIds.set(
+          notification.id,
+          window.setTimeout(() => removeToast(notification.id), TOAST_DURATION_MS)
+        );
+        showBrowserNotification(notification);
       });
 
-      markNotificationsAsSeen(
-        session,
-        pendingNotifications.map((notification) => notification.id)
+      saveToastedIds(username, toastedIds);
+      setToasts((current) =>
+        [...fresh, ...current.filter((toast) => !fresh.some((item) => item.id === toast.id))].slice(
+          0,
+          MAX_VISIBLE_TOASTS
+        )
       );
+      playNotificationSound(audioContextRef).catch(() => {});
     };
 
-    processNotifications();
-    const unsubscribe = subscribeNotifications(processNotifications);
+    const unsubscribe = subscribeNotifications(handleState);
 
     return () => {
       unsubscribe();
-      timeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
-      timeoutIdsRef.current.clear();
+      timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      timeoutIds.clear();
     };
-  }, [session]);
+  }, [username]);
 
-  if (!session?.user || !toasts.length) {
+  if (!username || !toasts.length) {
     return null;
   }
 
@@ -143,7 +140,7 @@ function NotificationCenter({ session }) {
             type="button"
             className="notification-toast-close"
             onClick={() => removeToast(toast.id)}
-            aria-label="Fechar notificacao"
+            aria-label="Fechar notificação"
           >
             x
           </button>

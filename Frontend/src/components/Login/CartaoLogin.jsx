@@ -29,7 +29,7 @@ const CartaoLogin = ({ onForgotPassword, onLoginSuccess }) => {
     event.preventDefault();
 
     if (!username.trim() || !password.trim()) {
-      setErrorMessage("Preencha usuario e senha.");
+      setErrorMessage("Preencha usuário e senha.");
       return;
     }
 
@@ -45,7 +45,7 @@ const CartaoLogin = ({ onForgotPassword, onLoginSuccess }) => {
 
       onLoginSuccess?.(session);
     } catch (error) {
-      setErrorMessage(error.message || "Nao foi possivel fazer login.");
+      setErrorMessage(error.message || "Não foi possível fazer login.");
     } finally {
       setIsSubmitting(false);
     }

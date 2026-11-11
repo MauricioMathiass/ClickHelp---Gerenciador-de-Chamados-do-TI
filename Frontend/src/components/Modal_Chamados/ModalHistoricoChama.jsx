@@ -2,7 +2,7 @@ import ModalBase from "./ModalBase";
 
 function formatDate(dateValue) {
   if (!dateValue) {
-    return "Nao informado";
+    return "Não informado";
   }
 
   return new Date(dateValue).toLocaleString("pt-BR", {
@@ -16,7 +16,7 @@ function formatDate(dateValue) {
 
 function ModalHistoricoChama({ isOpen, onClose, solicitacoes }) {
   return (
-    <ModalBase isOpen={isOpen} onClose={onClose} title="Historico de chamados fechados" size="wide">
+    <ModalBase isOpen={isOpen} onClose={onClose} title="Histórico de chamados fechados" size="wide">
       <div className="tickets-stack">
         {solicitacoes.length ? (
           solicitacoes.map((item) => (
@@ -48,7 +48,7 @@ function ModalHistoricoChama({ isOpen, onClose, solicitacoes }) {
         ) : (
           <div className="empty-state">
             <h3>Nenhum chamado fechado</h3>
-            <p>Os chamados finalizados pelo administrador aparecerão aqui.</p>
+            <p>Os chamados que você finalizar aparecerão aqui.</p>
           </div>
         )}
       </div>

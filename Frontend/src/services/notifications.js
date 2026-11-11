@@ -1,173 +1,101 @@
-const STORAGE_KEY = "clickhelp.notifications";
-const DISMISSED_PREFIX = "clickhelp.notifications.dismissed.";
-const HISTORY_SEEN_PREFIX = "clickhelp.notifications.history-seen.";
-const ARCHIVE_PREFIX = "clickhelp.notifications.archive.";
-const LOCAL_EVENT_NAME = "clickhelp:notifications-updated";
-const MAX_NOTIFICATIONS = 200;
+import { api } from "./api";
 
-export const TI_NOTIFICATION_ROLES = ["Administrador", "Analista de TI"];
+// As notificações ficam no backend; aqui só mantemos um cache em memória
+// compartilhado entre os componentes e atualizado por polling.
+const POLL_INTERVAL_MS = 20000;
+const TOASTED_PREFIX = "clickhelp.notifications.toasted.";
+const MAX_TOASTED_IDS = 300;
 
-const isBrowser = typeof window !== "undefined";
+const EMPTY_STATE = { notifications: [], archived: [], unreadCount: 0 };
 
-const readNotifications = () => {
-  if (!isBrowser) {
-    return [];
-  }
+let state = EMPTY_STATE;
+const listeners = new Set();
+let pollTimer = null;
 
-  try {
-    const rawValue = window.localStorage.getItem(STORAGE_KEY);
-    return rawValue ? JSON.parse(rawValue) : [];
-  } catch {
-    return [];
-  }
-};
+const emit = () => listeners.forEach((listener) => listener(state));
 
-const writeNotifications = (notifications) => {
-  if (!isBrowser) {
-    return;
-  }
-
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications.slice(0, MAX_NOTIFICATIONS)));
-};
-
-const buildDismissedKey = (username) => `${DISMISSED_PREFIX}${String(username ?? "").trim().toLowerCase()}`;
-const buildHistorySeenKey = (username) =>
-  `${HISTORY_SEEN_PREFIX}${String(username ?? "").trim().toLowerCase()}`;
-const buildArchiveKey = (username) => `${ARCHIVE_PREFIX}${String(username ?? "").trim().toLowerCase()}`;
-
-const readSeenIds = (username) => {
-  if (!isBrowser || !username) {
-    return [];
-  }
-
-  try {
-    const rawValue = window.localStorage.getItem(buildDismissedKey(username));
-    return rawValue ? JSON.parse(rawValue) : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeSeenIds = (username, ids) => {
-  if (!isBrowser || !username) {
-    return;
-  }
-
-  window.localStorage.setItem(buildDismissedKey(username), JSON.stringify(ids));
-};
-
-const readHistorySeenIds = (username) => {
-  if (!isBrowser || !username) {
-    return [];
-  }
-
-  try {
-    const rawValue = window.localStorage.getItem(buildHistorySeenKey(username));
-    return rawValue ? JSON.parse(rawValue) : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeHistorySeenIds = (username, ids) => {
-  if (!isBrowser || !username) {
-    return;
-  }
-
-  window.localStorage.setItem(buildHistorySeenKey(username), JSON.stringify(ids));
-};
-
-const readArchivedNotifications = (username) => {
-  if (!isBrowser || !username) {
-    return [];
-  }
-
-  try {
-    const rawValue = window.localStorage.getItem(buildArchiveKey(username));
-    return rawValue ? JSON.parse(rawValue) : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeArchivedNotifications = (username, notifications) => {
-  if (!isBrowser || !username) {
-    return;
-  }
-
-  window.localStorage.setItem(
-    buildArchiveKey(username),
-    JSON.stringify(notifications.slice(0, MAX_NOTIFICATIONS))
-  );
-};
-
-const clearSeenIds = (username) => {
-  if (!isBrowser || !username) {
-    return;
-  }
-
-  window.localStorage.removeItem(buildDismissedKey(username));
-};
-
-const clearHistorySeenIds = (username) => {
-  if (!isBrowser || !username) {
-    return;
-  }
-
-  window.localStorage.removeItem(buildHistorySeenKey(username));
-};
-
-const emitNotificationsUpdated = () => {
-  if (!isBrowser) {
-    return;
-  }
-
-  window.dispatchEvent(new CustomEvent(LOCAL_EVENT_NAME));
-};
-
-export const createAppNotification = ({
-  type,
-  title,
-  message,
-  recipients,
-  context = {},
-}) => {
-  const notification = {
-    id: crypto.randomUUID(),
-    type,
-    title,
-    message,
-    recipients,
-    context,
-    createdAt: new Date().toISOString(),
+const applyResponse = (data) => {
+  state = {
+    notifications: data?.notifications ?? [],
+    archived: data?.archived ?? [],
+    unreadCount: data?.unreadCount ?? 0,
   };
-
-  const notifications = readNotifications();
-  notifications.unshift(notification);
-  writeNotifications(notifications);
-  emitNotificationsUpdated();
-  return notification;
+  emit();
+  return state;
 };
 
+export const refreshNotifications = async () => {
+  try {
+    const { data } = await api.get("/notifications");
+    return applyResponse(data);
+  } catch {
+    return state;
+  }
+};
+
+export const markNotificationsAsRead = async (ids) => {
+  if (!ids?.length) {
+    return state;
+  }
+
+  const { data } = await api.post("/notifications/read", { ids });
+  return applyResponse(data);
+};
+
+/** Move as notificações do usuário atual para o histórico. */
+export const clearNotifications = async () => {
+  const { data } = await api.post("/notifications/clear");
+  return applyResponse(data);
+};
+
+export const getNotificationsState = () => state;
+
+/** Assina as mudanças; o polling roda enquanto houver alguém assinando. */
 export const subscribeNotifications = (listener) => {
-  if (!isBrowser) {
-    return () => {};
+  listeners.add(listener);
+
+  if (!pollTimer) {
+    refreshNotifications();
+    pollTimer = window.setInterval(refreshNotifications, POLL_INTERVAL_MS);
   }
-
-  const notify = () => listener(readNotifications());
-  const handleStorage = (event) => {
-    if (event.key === STORAGE_KEY) {
-      notify();
-    }
-  };
-
-  window.addEventListener("storage", handleStorage);
-  window.addEventListener(LOCAL_EVENT_NAME, notify);
 
   return () => {
-    window.removeEventListener("storage", handleStorage);
-    window.removeEventListener(LOCAL_EVENT_NAME, notify);
+    listeners.delete(listener);
+
+    if (!listeners.size && pollTimer) {
+      window.clearInterval(pollTimer);
+      pollTimer = null;
+    }
   };
+};
+
+export const resetNotificationsState = () => {
+  state = EMPTY_STATE;
+  emit();
+};
+
+// --- Controle local dos "toasts" já exibidos neste navegador ---
+
+const toastedKey = (username) => `${TOASTED_PREFIX}${String(username ?? "").trim().toLowerCase()}`;
+
+export const readToastedIds = (username) => {
+  try {
+    const rawValue = window.localStorage.getItem(toastedKey(username));
+    return new Set(rawValue ? JSON.parse(rawValue) : []);
+  } catch {
+    return new Set();
+  }
+};
+
+export const saveToastedIds = (username, ids) => {
+  try {
+    window.localStorage.setItem(
+      toastedKey(username),
+      JSON.stringify(Array.from(ids).slice(-MAX_TOASTED_IDS))
+    );
+  } catch {
+    // armazenamento indisponível: apenas não lembra os toasts exibidos
+  }
 };
 
 export const requestBrowserNotificationPermission = async () => {
@@ -184,117 +112,4 @@ export const requestBrowserNotificationPermission = async () => {
   } catch {
     return "denied";
   }
-};
-
-const notificationMatchesSession = (notification, session) => {
-  if (!session?.user) {
-    return false;
-  }
-
-  const usernames = notification.recipients?.usernames ?? [];
-  const roles = notification.recipients?.roles ?? [];
-  const currentUsername = String(session.user.username ?? "").trim().toLowerCase();
-  const currentRole = session.user.role ?? "";
-
-  return (
-    usernames.some((username) => String(username).trim().toLowerCase() === currentUsername) ||
-    roles.includes(currentRole)
-  );
-};
-
-export const getPendingNotificationsForSession = (session) => {
-  if (!session?.user?.username) {
-    return [];
-  }
-
-  const seenIds = new Set(readSeenIds(session.user.username));
-
-  return readNotifications().filter(
-    (notification) => notificationMatchesSession(notification, session) && !seenIds.has(notification.id)
-  );
-};
-
-export const getNotificationsForSession = (session, limit = 12) => {
-  if (!session?.user?.username) {
-    return [];
-  }
-
-  const notifications = readNotifications().filter((notification) =>
-    notificationMatchesSession(notification, session)
-  );
-
-  if (!Number.isFinite(limit) || limit <= 0) {
-    return notifications;
-  }
-
-  return notifications.slice(0, limit);
-};
-
-export const getUnreadNotificationCountForSession = (session) => {
-  if (!session?.user?.username) {
-    return 0;
-  }
-
-  const seenIds = new Set(readHistorySeenIds(session.user.username));
-
-  return readNotifications().filter(
-    (notification) => notificationMatchesSession(notification, session) && !seenIds.has(notification.id)
-  ).length;
-};
-
-export const getArchivedNotificationsForSession = (session, limit = 20) => {
-  if (!session?.user?.username) {
-    return [];
-  }
-
-  const notifications = readArchivedNotifications(session.user.username);
-
-  if (!Number.isFinite(limit) || limit <= 0) {
-    return notifications;
-  }
-
-  return notifications.slice(0, limit);
-};
-
-export const markNotificationHistoryAsSeen = (session, notificationIds) => {
-  if (!session?.user?.username || !notificationIds.length) {
-    return;
-  }
-
-  const currentIds = new Set(readHistorySeenIds(session.user.username));
-  notificationIds.forEach((id) => currentIds.add(id));
-  writeHistorySeenIds(session.user.username, Array.from(currentIds));
-  emitNotificationsUpdated();
-};
-
-export const clearNotificationsForSession = (session) => {
-  if (!session?.user?.username) {
-    return;
-  }
-
-  const matchingNotifications = readNotifications().filter((notification) =>
-    notificationMatchesSession(notification, session)
-  );
-  const nextNotifications = readNotifications().filter(
-    (notification) => !notificationMatchesSession(notification, session)
-  );
-
-  writeNotifications(nextNotifications);
-  if (matchingNotifications.length) {
-    const currentArchive = readArchivedNotifications(session.user.username);
-    writeArchivedNotifications(session.user.username, [...matchingNotifications, ...currentArchive]);
-  }
-  clearSeenIds(session.user.username);
-  clearHistorySeenIds(session.user.username);
-  emitNotificationsUpdated();
-};
-
-export const markNotificationsAsSeen = (session, notificationIds) => {
-  if (!session?.user?.username || !notificationIds.length) {
-    return;
-  }
-
-  const currentIds = new Set(readSeenIds(session.user.username));
-  notificationIds.forEach((id) => currentIds.add(id));
-  writeSeenIds(session.user.username, Array.from(currentIds));
 };

@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CartaoLogin from "./components/Login/CartaoLogin";
 import EsqueceuSenha from "./components/Login/EsqueceuSenha";
 import ContainerMain from "./components/MainContent/ContainerMain";
 import NotificationCenter from "./components/Common/NotificationCenter";
+import { SESSION_EXPIRED_EVENT } from "./services/api";
 import { getStoredSession, logoutUser } from "./services/auth";
-import { requestBrowserNotificationPermission } from "./services/notifications";
+import {
+  requestBrowserNotificationPermission,
+  resetNotificationsState,
+} from "./services/notifications";
 
 function App() {
   const [session, setSession] = useState(() => getStoredSession());
@@ -12,9 +16,17 @@ function App() {
 
   const handleBackToLogin = () => {
     logoutUser();
+    resetNotificationsState();
     setSession(null);
     setCurrentView("login");
   };
+
+  useEffect(() => {
+    // O backend recusou o token (expirado/inválido): volta para o login.
+    const handleSessionExpired = () => handleBackToLogin();
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, []);
 
   const handleLoginSuccess = (nextSession) => {
     setSession(nextSession);

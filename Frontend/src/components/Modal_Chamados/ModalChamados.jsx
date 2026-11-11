@@ -36,7 +36,7 @@ function ModalChamados({ isOpen, onClose, solicitacoes }) {
 
               {item.resposta ? (
                 <div className="ticket-response">
-                  <strong>Resposta  TI</strong>
+                  <strong>Resposta da TI</strong>
                   <p>{item.resposta}</p>
                 </div>
               ) : null}

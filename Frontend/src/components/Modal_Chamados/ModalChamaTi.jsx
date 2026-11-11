@@ -2,7 +2,17 @@ import { useMemo, useState } from "react";
 import ModalBase from "./ModalBase";
 import CustomSelect from "../Common/CustomSelect";
 
+const STATUS_OPTIONS = [
+  { value: "Aberto", label: "Aberto" },
+  { value: "Em andamento", label: "Em andamento" },
+  { value: "Fechado", label: "Fechado" },
+];
+
 function formatDate(dateValue) {
+  if (!dateValue) {
+    return "Não informado";
+  }
+
   return new Date(dateValue).toLocaleString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
@@ -14,37 +24,52 @@ function formatDate(dateValue) {
 
 function ModalChamaTi({ isOpen, onClose, chamados, onUpdateChamado, abrirSLA }) {
   const [draftResponses, setDraftResponses] = useState({});
+  const [errors, setErrors] = useState({});
+  const [savingId, setSavingId] = useState(null);
   const chamadosAbertos = useMemo(
     () => chamados.filter((item) => item.status !== "Fechado"),
     [chamados]
   );
-  const statusOptions = useMemo(
-    () => [
-      { value: "Aberto", label: "Aberto" },
-      { value: "Em andamento", label: "Em andamento" },
-      { value: "Fechado", label: "Fechado" },
-    ],
-    []
-  );
+
+  const getResposta = (chamado) => draftResponses[chamado.id] ?? chamado.resposta ?? "";
+
+  const setError = (id, message) => setErrors((current) => ({ ...current, [id]: message }));
 
   const handleDraftChange = (id, value) => {
-    setDraftResponses((current) => ({
-      ...current,
-      [id]: value,
-    }));
+    setDraftResponses((current) => ({ ...current, [id]: value }));
+    setError(id, "");
   };
 
-  const handleCloseChamado = (chamado) => {
-    const resposta = draftResponses[chamado.id] ?? chamado.resposta ?? "";
+  const submitUpdate = async (chamado, updates) => {
+    setSavingId(chamado.id);
+    const errorMessage = await onUpdateChamado(chamado.id, updates);
+    setSavingId(null);
+    setError(chamado.id, errorMessage ?? "");
+  };
 
-    if (!resposta.trim()) {
+  const handleStatusChange = (chamado, nextStatus) => {
+    if (nextStatus === chamado.status) {
       return;
     }
 
-    onUpdateChamado(chamado.id, {
-      resposta,
-      status: "Fechado",
-    });
+    // Fechar sempre exige resposta, venha do seletor ou do botão.
+    if (nextStatus === "Fechado") {
+      handleCloseChamado(chamado);
+      return;
+    }
+
+    submitUpdate(chamado, { status: nextStatus });
+  };
+
+  const handleCloseChamado = (chamado) => {
+    const resposta = getResposta(chamado).trim();
+
+    if (!resposta) {
+      setError(chamado.id, "Escreva a resposta da TI antes de fechar o chamado.");
+      return;
+    }
+
+    submitUpdate(chamado, { resposta, status: "Fechado" });
   };
 
   return (
@@ -54,9 +79,11 @@ function ModalChamaTi({ isOpen, onClose, chamados, onUpdateChamado, abrirSLA }) 
       title="Painel TI"
       size="wide"
       actions={
-        <button type="button" className="modal-secondary-action" onClick={abrirSLA}>
-          Ver SLA
-        </button>
+        abrirSLA ? (
+          <button type="button" className="modal-secondary-action" onClick={abrirSLA}>
+            Ver SLA
+          </button>
+        ) : null
       }
     >
       <div className="tickets-stack">
@@ -86,29 +113,35 @@ function ModalChamaTi({ isOpen, onClose, chamados, onUpdateChamado, abrirSLA }) 
                   className="compact"
                   name={`status-${item.id}`}
                   value={item.status}
-                  options={statusOptions}
-                  onChange={(event) =>
-                    onUpdateChamado(item.id, {
-                      status: event.target.value,
-                    })
-                  }
+                  options={STATUS_OPTIONS}
+                  disabled={savingId === item.id}
+                  onChange={(event) => handleStatusChange(item, event.target.value)}
                 />
 
                 <textarea
                   className="ti-response-input"
                   placeholder="Escreva a resposta da equipe de TI"
-                  value={draftResponses[item.id] ?? item.resposta ?? ""}
+                  aria-label={`Resposta da TI para ${item.assunto}`}
+                  value={getResposta(item)}
+                  maxLength={5000}
                   onChange={(event) => handleDraftChange(item.id, event.target.value)}
                 />
 
                 <button
                   type="button"
                   className="modal-primary-action"
+                  disabled={savingId === item.id}
                   onClick={() => handleCloseChamado(item)}
                 >
-                  Fechar solicitaçãoo
+                  {savingId === item.id ? "Salvando..." : "Fechar solicitação"}
                 </button>
               </div>
+
+              {errors[item.id] ? (
+                <div className="form-feedback form-feedback-error" role="alert">
+                  {errors[item.id]}
+                </div>
+              ) : null}
             </article>
           ))
         ) : (

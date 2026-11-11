@@ -1,23 +1,37 @@
-import { mockUsers } from "../data/mockUsers.js";
+import { config } from "../config.js";
+import { badRequest } from "../lib/httpError.js";
+import { createJsonStore } from "../lib/jsonStore.js";
+import { ROLE_ADMIN, ROLE_USUARIO, VALID_ROLES } from "../lib/roles.js";
+import { hashPassword, safeTextEqual, verifyPassword } from "../lib/security.js";
+
+const store = createJsonStore("usersStore.json");
+const ENV_ADMIN_ID = 1;
+const MIN_PASSWORD_LENGTH = 6;
 
 const normalizeUsername = (value) => String(value ?? "").trim().toLowerCase();
-const normalizePassword = (value) => String(value ?? "").trim();
+
 const normalizeNameToken = (value) =>
   String(value ?? "")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ".")
     .replace(/^\.+|\.+$/g, "");
 
-const customUsers = [];
+/** Administrador inicial, definido no .env (não fica gravado em arquivo). */
+const getEnvAdmin = () => {
+  if (!config.admin.username || !config.admin.password) {
+    return null;
+  }
 
-export const findUserByCredentials = ({ username, password }) =>
-  [...mockUsers, ...customUsers].find(
-    (user) =>
-      normalizeUsername(user.username) === normalizeUsername(username) &&
-      user.passwords.includes(normalizePassword(password))
-  ) ?? null;
+  return {
+    id: ENV_ADMIN_ID,
+    username: normalizeUsername(config.admin.username),
+    name: config.admin.name,
+    role: ROLE_ADMIN,
+    department: config.admin.department,
+  };
+};
 
 export const sanitizeUser = (user) => ({
   id: user.id,
@@ -27,12 +41,32 @@ export const sanitizeUser = (user) => ({
   department: user.department,
 });
 
-const buildUsernameFromName = (name, surname, existingUsers) => {
-  const baseUsername = `${normalizeNameToken(name)}.${normalizeNameToken(surname)}`.replace(/\.+/g, ".");
-  let candidate = baseUsername || `usuario.${Date.now()}`;
+export const findUserByCredentials = async ({ username, password }) => {
+  const normalizedUsername = normalizeUsername(username);
+  const plainPassword = String(password ?? "");
+  const envAdmin = getEnvAdmin();
+
+  if (envAdmin && envAdmin.username === normalizedUsername) {
+    return safeTextEqual(plainPassword.trim(), config.admin.password) ? envAdmin : null;
+  }
+
+  const user = (await store.read()).find((item) => item.username === normalizedUsername);
+
+  if (!user || !(await verifyPassword(plainPassword, user.passwordHash))) {
+    return null;
+  }
+
+  return user;
+};
+
+const buildUsername = (name, surname, takenUsernames) => {
+  const baseUsername =
+    `${normalizeNameToken(name)}.${normalizeNameToken(surname)}`.replace(/\.+/g, ".").replace(/^\.+|\.+$/g, "") ||
+    `usuario.${Date.now()}`;
+  let candidate = baseUsername;
   let counter = 1;
 
-  while (existingUsers.some((user) => normalizeUsername(user.username) === candidate)) {
+  while (takenUsernames.has(candidate)) {
     counter += 1;
     candidate = `${baseUsername}.${counter}`;
   }
@@ -40,28 +74,49 @@ const buildUsernameFromName = (name, surname, existingUsers) => {
   return candidate;
 };
 
-export const createUser = ({ name, surname, password }) => {
+export const createUser = async ({ name, surname, password, role, department }) => {
   const trimmedName = String(name ?? "").trim();
   const trimmedSurname = String(surname ?? "").trim();
-  const trimmedPassword = normalizePassword(password);
+  const plainPassword = String(password ?? "");
+  const nextRole = role ? String(role) : ROLE_USUARIO;
 
-  if (!trimmedName || !trimmedSurname || !trimmedPassword) {
-    throw new Error("Preencha todos os campos obrigatorios.");
+  if (!trimmedName || !trimmedSurname || !plainPassword.trim()) {
+    throw badRequest("Preencha todos os campos obrigatorios.");
   }
 
-  const allUsers = [...mockUsers, ...customUsers];
-  const username = buildUsernameFromName(trimmedName, trimmedSurname, allUsers);
-  const nextId = allUsers.reduce((highestId, user) => Math.max(highestId, Number(user.id) || 0), 0) + 1;
+  if (plainPassword.length < MIN_PASSWORD_LENGTH) {
+    throw badRequest(`A senha precisa ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`);
+  }
 
-  const newUser = {
-    id: nextId,
-    username,
-    passwords: [trimmedPassword],
-    name: `${trimmedName} ${trimmedSurname}`,
-    role: "Usuario",
-    department: "Atendimento",
-  };
+  if (!VALID_ROLES.includes(nextRole)) {
+    throw badRequest("Perfil invalido.");
+  }
 
-  customUsers.unshift(newUser);
-  return newUser;
+  if (trimmedName.length > 60 || trimmedSurname.length > 60) {
+    throw badRequest("Nome e sobrenome aceitam no maximo 60 caracteres cada.");
+  }
+
+  const passwordHash = await hashPassword(plainPassword);
+
+  return store.update((users) => {
+    const envAdmin = getEnvAdmin();
+    const taken = new Set(users.map((user) => user.username));
+
+    if (envAdmin) {
+      taken.add(envAdmin.username);
+    }
+
+    const highestId = users.reduce((highest, user) => Math.max(highest, Number(user.id) || 0), ENV_ADMIN_ID);
+    const newUser = {
+      id: highestId + 1,
+      username: buildUsername(trimmedName, trimmedSurname, taken),
+      passwordHash,
+      name: `${trimmedName} ${trimmedSurname}`,
+      role: nextRole,
+      department: String(department ?? "").trim() || "Atendimento",
+      createdAt: new Date().toISOString(),
+    };
+
+    return { items: [...users, newUser], result: newUser };
+  });
 };

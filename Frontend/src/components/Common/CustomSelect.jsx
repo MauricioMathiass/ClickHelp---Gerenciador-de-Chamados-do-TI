@@ -4,6 +4,7 @@ import "./CustomSelect.css";
 function CustomSelect({
   className = "",
   disabled = false,
+  id,
   name,
   onChange,
   options,
@@ -69,6 +70,7 @@ function CustomSelect({
     >
       <button
         type="button"
+        id={id}
         className="custom-select-trigger"
         onClick={handleToggle}
         aria-expanded={isOpen}

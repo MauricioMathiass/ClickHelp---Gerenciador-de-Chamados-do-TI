@@ -1,13 +1,8 @@
-import axios from "axios";
+import { api, getApiErrorMessage, setApiToken } from "./api";
 
 const PERSISTENT_STORAGE_KEY = "clickhelp.auth";
 const SESSION_STORAGE_KEY = "clickhelp.auth.session";
 const REMEMBERED_LOGIN_KEY = "clickhelp.rememberedLogin";
-const CUSTOM_USERS_STORAGE_KEY = "clickhelp.auth.users";
-
-const MOCK_USERS = [];
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const safeStorage = (type) => {
   if (typeof window === "undefined") {
@@ -17,60 +12,33 @@ const safeStorage = (type) => {
   return type === "local" ? window.localStorage : window.sessionStorage;
 };
 
-const normalizeUsername = (value) => value.trim().toLowerCase();
-const normalizePassword = (value) => value.trim();
-
-const readCustomUsers = () => {
-  const storage = safeStorage("local");
-
-  if (!storage) {
-    return [];
-  }
-
-  try {
-    const rawValue = storage.getItem(CUSTOM_USERS_STORAGE_KEY);
-    return rawValue ? JSON.parse(rawValue) : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeCustomUsers = (users) => {
-  const storage = safeStorage("local");
-
-  if (!storage) {
-    return;
-  }
-
-  storage.setItem(CUSTOM_USERS_STORAGE_KEY, JSON.stringify(users));
-};
-
-const getAllMockUsers = () => [...MOCK_USERS, ...readCustomUsers()];
-
 const normalizeNameToken = (value) =>
-  value
+  String(value ?? "")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ".")
     .replace(/^\.+|\.+$/g, "");
 
-const buildUsernameFromName = (name, surname, existingUsers) => {
-  const baseUsername = `${normalizeNameToken(name)}.${normalizeNameToken(surname)}`.replace(/\.+/g, ".");
-  let candidate = baseUsername || `usuario.${Date.now()}`;
-  let counter = 1;
+/** Prévia do login que o backend vai gerar (nome.sobrenome). */
+export const buildDisplayUsernamePreview = (name, surname) =>
+  `${normalizeNameToken(name)}.${normalizeNameToken(surname)}`
+    .replace(/\.+/g, ".")
+    .replace(/^\.+|\.+$/g, "");
 
-  while (existingUsers.some((user) => normalizeUsername(user.username) === candidate)) {
-    counter += 1;
-    candidate = `${baseUsername}.${counter}`;
+/** Lê a validade do JWT (sem validar a assinatura — isso é papel do backend). */
+const getTokenExpiration = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+  } catch {
+    return null;
   }
-
-  return candidate;
 };
 
-export const buildDisplayUsernamePreview = (name, surname) => {
-  const preview = `${normalizeNameToken(name)}.${normalizeNameToken(surname)}`.replace(/\.+/g, ".");
-  return preview.replace(/^\.+|\.+$/g, "");
+const isSessionValid = (session) => {
+  const expiresAt = session?.token ? getTokenExpiration(session.token) : null;
+  return Boolean(session?.user && expiresAt && expiresAt > Date.now());
 };
 
 const clearAuthSessionStorage = () => {
@@ -90,119 +58,37 @@ const persistRememberedLogin = ({ username, rememberMe }) => {
     return;
   }
 
-  storage.setItem(
-    REMEMBERED_LOGIN_KEY,
-    JSON.stringify({
-      username,
-      rememberMe: true,
-    })
-  );
+  storage.setItem(REMEMBERED_LOGIN_KEY, JSON.stringify({ username, rememberMe: true }));
 };
 
 const persistSession = (session, rememberMe) => {
-  const storage = safeStorage(rememberMe ? "local" : "session");
-
-  if (!storage) {
-    return;
-  }
-
   clearAuthSessionStorage();
-  storage.setItem(
+  safeStorage(rememberMe ? "local" : "session")?.setItem(
     rememberMe ? PERSISTENT_STORAGE_KEY : SESSION_STORAGE_KEY,
     JSON.stringify(session)
   );
 };
 
-const buildSession = (user, rememberMe, token = null) => ({
-  token: token ?? `mock-token-${user.id}-${Date.now()}`,
-  rememberMe,
-  authenticatedAt: new Date().toISOString(),
-  user: {
-    id: user.id,
-    username: user.username,
-    name: user.name,
-    role: user.role,
-    department: user.department,
-  },
-});
-
-const registerWithRemote = async ({ name, surname, password }) => {
-  const endpoint =
-    import.meta.env.VITE_AUTH_REGISTER_ENDPOINT ?? "http://localhost:3001/api/auth/register";
-
-  const response = await axios.post(endpoint, {
-    name,
-    surname,
-    password,
-  });
-
-  return response.data?.user ?? null;
-};
-
-const loginWithMock = async ({ username, password, rememberMe }) => {
-  await sleep(700);
-
-  const user = getAllMockUsers().find(
-    (entry) =>
-      normalizeUsername(entry.username) === normalizeUsername(username) &&
-      entry.passwords.includes(normalizePassword(password))
-  );
-
-  if (!user) {
-    throw new Error("Usuario ou senha invalidos.");
-  }
-
-  const session = buildSession(user, rememberMe);
-  persistSession(session, rememberMe);
-  persistRememberedLogin({
-    username: user.username,
-    rememberMe,
-  });
-  return session;
-};
-
-const loginWithRemote = async ({ username, password, rememberMe }) => {
-  const endpoint =
-    import.meta.env.VITE_AUTH_ENDPOINT ?? "http://localhost:3001/api/auth/login";
-
-  const response = await axios.post(endpoint, { username, password });
-  const responseUser = response.data?.user ?? {};
-
-  const session = buildSession(
-    {
-      id: responseUser.id ?? Date.now(),
-      username: responseUser.username ?? username,
-      name: responseUser.name ?? responseUser.username ?? username,
-      role: responseUser.role ?? "Usuario",
-      department: responseUser.department ?? "Atendimento",
-    },
-    rememberMe,
-    response.data?.token ?? null
-  );
-
-  persistSession(session, rememberMe);
-  persistRememberedLogin({
-    username: responseUser.username ?? username,
-    rememberMe,
-  });
-  return session;
-};
-
 export const loginUser = async ({ username, password, rememberMe }) => {
-  const authMode = import.meta.env.VITE_AUTH_MODE ?? "mock";
+  try {
+    const { data } = await api.post("/auth/login", { username, password, rememberMe });
+    const session = {
+      token: data.token,
+      rememberMe,
+      authenticatedAt: new Date().toISOString(),
+      user: data.user,
+    };
 
-  if (authMode === "remote") {
-    try {
-      return await loginWithRemote({ username, password, rememberMe });
-    } catch (error) {
-      const message = error.response?.data?.message;
-      throw new Error(message || "Nao foi possivel autenticar no servidor.");
-    }
+    setApiToken(session.token);
+    persistSession(session, rememberMe);
+    persistRememberedLogin({ username: data.user.username, rememberMe });
+    return session;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Nao foi possivel autenticar no servidor."));
   }
-
-  return loginWithMock({ username, password, rememberMe });
 };
 
+/** Sessão salva no navegador, se ainda estiver válida. */
 export const getStoredSession = () => {
   const storedValues = [
     safeStorage("local")?.getItem(PERSISTENT_STORAGE_KEY),
@@ -211,72 +97,41 @@ export const getStoredSession = () => {
 
   for (const value of storedValues) {
     try {
-      return JSON.parse(value);
+      const session = JSON.parse(value);
+
+      if (isSessionValid(session)) {
+        setApiToken(session.token);
+        return session;
+      }
     } catch {
-      continue;
+      // ignora valor corrompido
     }
   }
 
+  clearAuthSessionStorage();
   return null;
 };
 
 export const logoutUser = () => {
+  setApiToken(null);
   clearAuthSessionStorage();
 };
 
 export const getRememberedLogin = () => {
-  const storage = safeStorage("local");
-
-  if (!storage) {
-    return null;
-  }
-
   try {
-    const rawValue = storage.getItem(REMEMBERED_LOGIN_KEY);
+    const rawValue = safeStorage("local")?.getItem(REMEMBERED_LOGIN_KEY);
     return rawValue ? JSON.parse(rawValue) : null;
   } catch {
     return null;
   }
 };
 
-export const createMockUser = ({ name, surname, password }) => {
-  const trimmedName = name.trim();
-  const trimmedSurname = surname.trim();
-  const trimmedPassword = password.trim();
-
-  if (!trimmedName || !trimmedSurname || !trimmedPassword) {
-    throw new Error("Preencha todos os campos obrigatorios.");
+/** Cadastra um usuário (somente administradores). */
+export const createUser = async ({ name, surname, password, role }) => {
+  try {
+    const { data } = await api.post("/auth/register", { name, surname, password, role });
+    return data.user;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Nao foi possivel cadastrar o usuario."));
   }
-
-  const customUsers = readCustomUsers();
-  const allUsers = [...MOCK_USERS, ...customUsers];
-  const username = buildUsernameFromName(trimmedName, trimmedSurname, allUsers);
-  const nextId = allUsers.reduce((highestId, user) => Math.max(highestId, Number(user.id) || 0), 0) + 1;
-
-  const newUser = {
-    id: nextId,
-    username,
-    passwords: [trimmedPassword],
-    name: `${trimmedName} ${trimmedSurname}`,
-    role: "Usuario",
-    department: "Atendimento",
-  };
-
-  writeCustomUsers([newUser, ...customUsers]);
-  return newUser;
-};
-
-export const createUser = async ({ name, surname, password }) => {
-  const authMode = import.meta.env.VITE_AUTH_MODE ?? "mock";
-
-  if (authMode === "remote") {
-    try {
-      return await registerWithRemote({ name, surname, password });
-    } catch (error) {
-      const message = error.response?.data?.message;
-      throw new Error(message || "Nao foi possivel cadastrar o usuario.");
-    }
-  }
-
-  return createMockUser({ name, surname, password });
 };

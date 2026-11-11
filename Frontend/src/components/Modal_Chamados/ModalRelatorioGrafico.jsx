@@ -1,26 +1,34 @@
 import ModalBase from "./ModalBase";
 
+const percent = (value, total) => (total ? Math.round((value / total) * 100) : 0);
+
+// "Atendido" = fechado dentro do prazo; "Dentro do prazo" = ainda aberto e no prazo;
+// "Violado" = prazo estourado (aberto ou fechado). A eficiência considera só os
+// chamados já decididos (atendidos + violados).
 function buildSlaStats(chamados) {
   const total = chamados.length;
-  const atendidos = chamados.filter((item) => item.slaLabel !== "Violado").length;
+  const atendidos = chamados.filter((item) => item.slaLabel === "Atendido").length;
+  const emAberto = chamados.filter((item) => item.slaLabel === "Dentro do prazo").length;
   const violados = chamados.filter((item) => item.slaLabel === "Violado").length;
-  const eficiencia = total ? Math.round((atendidos / total) * 100) : 0;
 
   return {
     total,
     atendidos,
+    emAberto,
     violados,
-    eficiencia,
+    eficiencia: percent(atendidos, atendidos + violados),
   };
 }
 
 function ModalRelatorioGrafico({ isOpen, onClose, chamados }) {
-  const { total, atendidos, violados, eficiencia } = buildSlaStats(chamados);
-  const atendidosPercentual = total ? Math.round((atendidos / total) * 100) : 0;
-  const violadosPercentual = total ? 100 - atendidosPercentual : 0;
+  const { total, atendidos, emAberto, violados, eficiencia } = buildSlaStats(chamados);
+  const atendidosPercentual = percent(atendidos, total);
+  const emAbertoPercentual = percent(emAberto, total);
+  const violadosPercentual = total ? 100 - atendidosPercentual - emAbertoPercentual : 0;
+  const fimAbertos = atendidosPercentual + emAbertoPercentual;
   const pieStyle = {
     background: total
-      ? `conic-gradient(#5de2c0 0 ${atendidosPercentual}%, #ff7d7d ${atendidosPercentual}% 100%)`
+      ? `conic-gradient(#5de2c0 0 ${atendidosPercentual}%, #7da7ff ${atendidosPercentual}% ${fimAbertos}%, #ff7d7d ${fimAbertos}% 100%)`
       : "conic-gradient(rgba(255,255,255,0.14) 0 100%)",
   };
 
@@ -31,10 +39,12 @@ function ModalRelatorioGrafico({ isOpen, onClose, chamados }) {
     workbook.created = new Date();
     const resumoRows = [
       { Indicador: "Total de chamados", Valor: total },
-      { Indicador: "Atendidos no prazo", Valor: atendidos },
+      { Indicador: "Fechados no prazo", Valor: atendidos },
+      { Indicador: "Em aberto no prazo", Valor: emAberto },
       { Indicador: "Violados", Valor: violados },
-      { Indicador: "Eficiencia", Valor: `${eficiencia}%` },
-      { Indicador: "Percentual atendidos", Valor: `${atendidosPercentual}%` },
+      { Indicador: "Eficiência (fechados no prazo / decididos)", Valor: `${eficiencia}%` },
+      { Indicador: "Percentual fechados no prazo", Valor: `${atendidosPercentual}%` },
+      { Indicador: "Percentual em aberto no prazo", Valor: `${emAbertoPercentual}%` },
       { Indicador: "Percentual violados", Valor: `${violadosPercentual}%` },
     ];
     const chamadosOrdenados = [...chamados].sort((left, right) => {
@@ -50,16 +60,16 @@ function ModalRelatorioGrafico({ isOpen, onClose, chamados }) {
       Prioridade: item.prioridade,
       "Data de abertura": item.dataCriacao
         ? new Date(item.dataCriacao).toLocaleString("pt-BR")
-        : "Nao informado",
+        : "Não informado",
       "Prazo SLA": item.dataLimite
         ? new Date(item.dataLimite).toLocaleString("pt-BR")
-        : "Nao informado",
+        : "Não informado",
       SLA: item.slaLabel,
     }));
 
     const resumoSheet = workbook.addWorksheet("Resumo SLA");
     resumoSheet.columns = [
-      { header: "Indicador", key: "Indicador", width: 28 },
+      { header: "Indicador", key: "Indicador", width: 44 },
       { header: "Valor", key: "Valor", width: 20 },
     ];
     resumoSheet.addRows(resumoRows);
@@ -164,7 +174,7 @@ function ModalRelatorioGrafico({ isOpen, onClose, chamados }) {
   };
 
   return (
-    <ModalBase isOpen={isOpen} onClose={onClose} title="Relatorio grafico de SLA" size="wide">
+    <ModalBase isOpen={isOpen} onClose={onClose} title="Relatório gráfico de SLA" size="wide">
       <div className="sla-graphic-toolbar">
         <button
           type="button"
@@ -190,9 +200,19 @@ function ModalRelatorioGrafico({ isOpen, onClose, chamados }) {
             <div className="sla-legend-item">
               <span className="sla-legend-dot dot-atendido"></span>
               <div>
-                <strong>Atendidos</strong>
+                <strong>Fechados no prazo</strong>
                 <p>
                   {atendidos} chamado(s) - {atendidosPercentual}%
+                </p>
+              </div>
+            </div>
+
+            <div className="sla-legend-item">
+              <span className="sla-legend-dot dot-aberto"></span>
+              <div>
+                <strong>Em aberto no prazo</strong>
+                <p>
+                  {emAberto} chamado(s) - {emAbertoPercentual}%
                 </p>
               </div>
             </div>
@@ -216,8 +236,13 @@ function ModalRelatorioGrafico({ isOpen, onClose, chamados }) {
           </article>
 
           <article className="sla-summary-card">
-            <span>Atendidos no prazo</span>
+            <span>Fechados no prazo</span>
             <strong>{atendidos}</strong>
+          </article>
+
+          <article className="sla-summary-card">
+            <span>Em aberto no prazo</span>
+            <strong>{emAberto}</strong>
           </article>
 
           <article className="sla-summary-card">
@@ -226,7 +251,7 @@ function ModalRelatorioGrafico({ isOpen, onClose, chamados }) {
           </article>
 
           <article className="sla-summary-card">
-            <span>Eficiencia</span>
+            <span>Eficiência</span>
             <strong>{eficiencia}%</strong>
           </article>
         </section>

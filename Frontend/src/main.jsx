@@ -2,12 +2,12 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./App.css";
-import { clearClickHelpBrowserStorageOnce } from "./services/storageCleanup";
+import { clearLegacyBrowserStorageOnce } from "./services/storageCleanup";
 
-clearClickHelpBrowserStorageOnce();
+clearLegacyBrowserStorageOnce();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-
+  <React.StrictMode>
     <App />
-
+  </React.StrictMode>
 );

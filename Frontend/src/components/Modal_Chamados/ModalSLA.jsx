@@ -61,7 +61,7 @@ function ModalSLA({ isOpen, onClose, chamados }) {
       const matchesDate = !filterDate || formatDateInput(item.dataCriacao) === filterDate;
       const matchesStatus = !filterStatus || item.status === filterStatus;
       const matchesSolicitante =
-        !normalizedSolicitante || item.solicitante.toLowerCase().includes(normalizedSolicitante);
+        !normalizedSolicitante || String(item.solicitante ?? "").toLowerCase().includes(normalizedSolicitante);
       const matchesSla = !filterSla || slaLabel === filterSla;
 
       return matchesDate && matchesStatus && matchesSolicitante && matchesSla;
@@ -82,7 +82,7 @@ function ModalSLA({ isOpen, onClose, chamados }) {
       <ModalBase
         isOpen={isOpen}
         onClose={onClose}
-        title="Relatorio SLA"
+        title="Relatório SLA"
         size="wide"
         centerTitle
         hideCloseButton
@@ -105,6 +105,7 @@ function ModalSLA({ isOpen, onClose, chamados }) {
           <div className="sla-filter-field">
             <label htmlFor="sla-filter-date">Data</label>
             <CustomDatePicker
+              id="sla-filter-date"
               name="sla-filter-date"
               value={filterDate}
               onChange={(event) => setFilterDate(event.target.value)}
@@ -116,6 +117,7 @@ function ModalSLA({ isOpen, onClose, chamados }) {
             <label htmlFor="sla-filter-status">Status</label>
             <CustomSelect
               className="compact"
+              id="sla-filter-status"
               name="sla-filter-status"
               value={filterStatus}
               options={statusOptions}
@@ -139,6 +141,7 @@ function ModalSLA({ isOpen, onClose, chamados }) {
             <label htmlFor="sla-filter-result">SLA</label>
             <CustomSelect
               className="compact"
+              id="sla-filter-result"
               name="sla-filter-result"
               value={filterSla}
               options={slaOptions}

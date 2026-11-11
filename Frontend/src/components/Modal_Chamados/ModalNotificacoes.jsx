@@ -34,7 +34,7 @@ function ModalNotificacoes({ isOpen, onClose, notifications, archivedNotificatio
     <ModalBase
       isOpen={isOpen}
       onClose={onClose}
-      title={showHistory ? "Historico de notificacoes" : "Notificacoes recentes"}
+      title={showHistory ? "Histórico de notificações" : "Notificações recentes"}
       actions={
         <div className="notification-modal-actions">
           {showHistory ? (
@@ -53,13 +53,13 @@ function ModalNotificacoes({ isOpen, onClose, notifications, archivedNotificatio
               className="modal-close notification-history-button"
               onClick={() => setShowHistory(true)}
             >
-              Historico de notificacoes
+              Histórico de notificações
             </button>
           ) : null}
 
           {!showHistory && notifications.length ? (
             <button type="button" className="modal-secondary-action" onClick={onClear}>
-              Limpar notificacoes
+              Limpar notificações
             </button>
           ) : null}
         </div>
@@ -80,11 +80,11 @@ function ModalNotificacoes({ isOpen, onClose, notifications, archivedNotificatio
         </div>
       ) : (
         <div className="empty-state">
-          <h3>{showHistory ? "Nenhum historico encontrado" : "Nenhuma notificacao encontrada"}</h3>
+          <h3>{showHistory ? "Nenhum histórico encontrado" : "Nenhuma notificação encontrada"}</h3>
           <p>
             {showHistory
-              ? "As mensagens antigas removidas das notificacoes recentes aparecerao aqui."
-              : "As ultimas atualizacoes recebidas pelo usuario aparecerao aqui."}
+              ? "As mensagens removidas das notificações recentes aparecerão aqui."
+              : "As últimas atualizações recebidas aparecerão aqui."}
           </p>
         </div>
       )}

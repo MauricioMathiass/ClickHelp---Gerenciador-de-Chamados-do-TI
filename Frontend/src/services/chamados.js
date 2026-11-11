@@ -1,53 +1,18 @@
-import axios from "axios";
+import { api } from "./api";
 
-const CHAMADOS_ENDPOINT =
-  import.meta.env.VITE_CHAMADOS_ENDPOINT ?? "http://localhost:3001/api/chamados";
-
-const buildSessionParams = (session) => ({
-  role: session?.user?.role ?? "",
-  username: session?.user?.username ?? "",
-});
-
-export const getChamadosForSession = async (session) => {
-  const response = await axios.get(CHAMADOS_ENDPOINT, {
-    params: buildSessionParams(session),
-  });
-
-  return response.data?.chamados ?? [];
+/** Chamados que o usuário logado pode ver (o backend filtra pelo token). */
+export const getChamados = async () => {
+  const { data } = await api.get("/chamados");
+  return data?.chamados ?? [];
 };
 
-export const getChamadosByUser = async (username, session) => {
-  const response = await axios.get(CHAMADOS_ENDPOINT, {
-    params: {
-      ...buildSessionParams(session),
-      solicitante: username,
-    },
-  });
-
-  return response.data?.chamados ?? [];
+export const createChamado = async ({ assunto, local, prioridade, problema }) => {
+  const { data } = await api.post("/chamados", { assunto, local, prioridade, problema });
+  return data?.chamado ?? null;
 };
 
-export const createChamado = async ({
-  assunto,
-  solicitante,
-  local,
-  prioridade,
-  problema,
-  userId,
-}) => {
-  const response = await axios.post(CHAMADOS_ENDPOINT, {
-    assunto,
-    solicitante,
-    local,
-    prioridade,
-    problema,
-    userId,
-  });
-
-  return response.data?.chamado ?? null;
-};
-
-export const updateChamado = async (id, updates) => {
-  const response = await axios.patch(`${CHAMADOS_ENDPOINT}/${id}`, updates);
-  return response.data?.chamado ?? null;
+/** Atualiza apenas status e/ou resposta; o restante é calculado no backend. */
+export const updateChamado = async (id, { status, resposta }) => {
+  const { data } = await api.patch(`/chamados/${encodeURIComponent(id)}`, { status, resposta });
+  return data?.chamado ?? null;
 };

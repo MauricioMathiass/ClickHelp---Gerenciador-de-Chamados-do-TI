@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FaBell } from "react-icons/fa";
 import { FaArrowRightFromBracket } from "react-icons/fa6";
 import "./ContainerMain.css";
@@ -9,18 +9,33 @@ import ModalNovoUsuario from "../Modal_Chamados/ModalNovoUsuario";
 import ModalSLA from "../Modal_Chamados/ModalSLA";
 import ModalNotificacoes from "../Modal_Chamados/ModalNotificacoes";
 import CustomSelect from "../Common/CustomSelect";
-import { createChamado, getChamadosForSession, updateChamado } from "../../services/chamados";
+import { getApiErrorMessage } from "../../services/api";
+import { createChamado, getChamados, updateChamado } from "../../services/chamados";
 import { notifyNewTicketByEmail } from "../../services/emailNotifications";
 import {
-  clearNotificationsForSession,
-  getArchivedNotificationsForSession,
-  createAppNotification,
-  getNotificationsForSession,
-  getUnreadNotificationCountForSession,
-  markNotificationHistoryAsSeen,
+  clearNotifications,
+  getNotificationsState,
+  markNotificationsAsRead,
+  refreshNotifications,
   subscribeNotifications,
-  TI_NOTIFICATION_ROLES,
 } from "../../services/notifications";
+
+const CHAMADOS_REFRESH_MS = 30000;
+const TI_ROLES = ["Administrador", "Analista de TI"];
+
+const LOCAL_OPTIONS = [
+  { value: "", label: "Selecione um local" },
+  { value: "ORV", label: "ORV" },
+  { value: "AWA", label: "AWA" },
+  { value: "SOCIAL", label: "SOCIAL" },
+];
+
+const PRIORIDADE_OPTIONS = [
+  { value: "", label: "Selecione a prioridade" },
+  { value: "baixa", label: "Baixa" },
+  { value: "media", label: "Média" },
+  { value: "alta", label: "Alta" },
+];
 
 function ContainerMain({ onBack, session }) {
   const [openModalChamados, setOpenModalChamados] = useState(false);
@@ -33,94 +48,48 @@ function ContainerMain({ onBack, session }) {
   const [local, setLocal] = useState("");
   const [prioridade, setPrioridade] = useState("");
   const [problema, setProblema] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const [solicitacoes, setSolicitacoes] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [archivedNotifications, setArchivedNotifications] = useState([]);
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [notificationsState, setNotificationsState] = useState(getNotificationsState);
   const [feedback, setFeedback] = useState("");
   const [feedbackType, setFeedbackType] = useState("");
 
-  const solicitante = session?.user?.username ?? "";
-  const userDisplayName = (session?.user?.name ?? "Usuario")
-    .replace(/\s*ClickHELP\s*/gi, " ")
-    .trim();
-  const canViewTiPanel = useMemo(
-    () => ["Administrador", "Analista de TI"].includes(session?.user?.role ?? ""),
-    [session]
-  );
-  const isAdmin = session?.user?.role === "Administrador";
-  const localOptions = useMemo(
-    () => [
-      { value: "", label: "Selecione um local" },
-      { value: "ORV", label: "ORV" },
-      { value: "AWA", label: "ÃƒWA" },
-      { value: "SOCIAL", label: "SOCIAL" },
-    ],
-    []
-  );
-  const prioridadeOptions = useMemo(
-    () => [
-      { value: "", label: "Selecione a prioridade" },
-      { value: "baixa", label: "Baixa" },
-      { value: "media", label: "Media" },
-      { value: "alta", label: "Alta" },
-    ],
-    []
-  );
-  const userSolicitacoes = useMemo(
-    () => solicitacoes.filter((item) => item.solicitante === solicitante),
-    [solicitacoes, solicitante]
-  );
+  const username = session?.user?.username ?? "";
+  const role = session?.user?.role ?? "";
+  const userDisplayName = (session?.user?.name ?? "Usuário").replace(/\s*ClickHELP\s*/gi, " ").trim();
+  const canViewTiPanel = TI_ROLES.includes(role);
+  const isAdmin = role === "Administrador";
+  const userSolicitacoes = solicitacoes.filter((item) => item.solicitante === username);
+  const { notifications, archived: archivedNotifications, unreadCount } = notificationsState;
 
-  const refreshChamados = async () => {
-    if (!session?.user) {
-      setSolicitacoes([]);
-      return;
-    }
-
+  const refreshChamados = useCallback(async () => {
     try {
-      const chamados = await getChamadosForSession(session);
-      setSolicitacoes(chamados);
+      setSolicitacoes(await getChamados());
     } catch (error) {
       console.error("Falha ao carregar chamados do backend:", error);
-      setSolicitacoes([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     refreshChamados();
-  }, [session]);
+    const intervalId = window.setInterval(refreshChamados, CHAMADOS_REFRESH_MS);
+    return () => window.clearInterval(intervalId);
+  }, [refreshChamados, username]);
 
+  useEffect(() => subscribeNotifications(setNotificationsState), [username]);
+
+  // Ao abrir o modal, marca como lidas as notificações exibidas.
   useEffect(() => {
-    if (!session?.user) {
-      setNotifications([]);
-      setArchivedNotifications([]);
-      return undefined;
-    }
-
-    const refreshNotifications = () => {
-      setNotifications(getNotificationsForSession(session));
-      setArchivedNotifications(getArchivedNotificationsForSession(session));
-      setUnreadNotificationCount(getUnreadNotificationCountForSession(session));
-    };
-
-    refreshNotifications();
-    const unsubscribe = subscribeNotifications(refreshNotifications);
-
-    return unsubscribe;
-  }, [session]);
-
-  useEffect(() => {
-    if (!openModalNotificacoes || !session?.user || !notifications.length) {
+    if (!openModalNotificacoes) {
       return;
     }
 
-    markNotificationHistoryAsSeen(
-      session,
-      notifications.map((notification) => notification.id)
-    );
-    setUnreadNotificationCount(0);
-  }, [openModalNotificacoes, notifications, session]);
+    const unreadIds = notifications.filter((item) => !item.read).map((item) => item.id);
+
+    if (unreadIds.length) {
+      markNotificationsAsRead(unreadIds).catch(() => {});
+    }
+  }, [openModalNotificacoes, notifications]);
 
   const limparFormulario = () => {
     setAssunto("");
@@ -137,123 +106,49 @@ function ContainerMain({ onBack, session }) {
   };
 
   const enviarSolicitacao = async () => {
-    if (!assunto || !solicitante || !local || !prioridade || !problema) {
+    if (!assunto.trim() || !local || !prioridade || !problema.trim()) {
       setFeedback("Preencha todos os campos obrigatórios antes de enviar.");
       setFeedbackType("error");
       return;
     }
 
+    setIsSending(true);
+
     try {
-      const chamadoCriado = await createChamado({
-        assunto,
-        solicitante,
-        local,
-        prioridade,
-        problema,
-        userId: session?.user?.id,
-      });
+      const chamadoCriado = await createChamado({ assunto, local, prioridade, problema });
 
-      createAppNotification({
-        type: "solicitacao-enviada",
-        title: "Solicitação enviada",
-        message: `Seu chamado "${assunto}" foi registrado com sucesso no ClickHELP.`,
-        recipients: {
-          usernames: [solicitante],
-        },
-        context: {
-          chamadoId: chamadoCriado.id,
-        },
-      });
+      notifyNewTicketByEmail({
+        assunto: chamadoCriado.assunto,
+        solicitante: chamadoCriado.solicitante,
+        local: chamadoCriado.local,
+        prioridade: chamadoCriado.prioridade,
+        problema: chamadoCriado.problema,
+        chamadoId: chamadoCriado.id,
+        createdAt: chamadoCriado.dataCriacao,
+      }).catch((error) => console.error("Falha ao enviar notificação por e-mail:", error));
 
-      createAppNotification({
-        type: "novo-chamado-ti",
-        title: "Nova solicitação recebida",
-        message: `${solicitante} abriu o chamado "${assunto}" e aguarda atendimento da equipe de TI.`,
-        recipients: {
-          roles: TI_NOTIFICATION_ROLES,
-        },
-        context: {
-          chamadoId: chamadoCriado.id,
-        },
-      });
-
-      try {
-        await notifyNewTicketByEmail({
-          assunto: chamadoCriado.assunto,
-          solicitante: chamadoCriado.solicitante,
-          local: chamadoCriado.local,
-          prioridade: chamadoCriado.prioridade,
-          problema: chamadoCriado.problema,
-          chamadoId: chamadoCriado.id,
-          createdAt: chamadoCriado.dataCriacao,
-        });
-      } catch (error) {
-        console.error("Falha ao enviar notificacao por e-mail:", error);
-      }
-
-      await refreshChamados();
+      await Promise.all([refreshChamados(), refreshNotifications()]);
       limparFormulario();
       setFeedback("Solicitação enviada com sucesso.");
       setFeedbackType("success");
       setOpenModalChamados(true);
     } catch (error) {
-      console.error("Falha ao criar chamado no backend:", error);
-      setFeedback("Nao foi possivel enviar a solicitacao agora.");
+      setFeedback(getApiErrorMessage(error, "Não foi possível enviar a solicitação agora."));
       setFeedbackType("error");
+    } finally {
+      setIsSending(false);
     }
   };
 
+  /** Envia status/resposta ao backend; devolve a mensagem de erro, se houver. */
   const handleUpdateChamado = async (id, updates) => {
-    const chamadoAnterior = solicitacoes.find((item) => item.id === id);
-    const nextStatus = updates.status ?? chamadoAnterior?.status;
-    const isClosingNow = nextStatus === "Fechado" && chamadoAnterior?.status !== "Fechado";
-
     try {
-      const updated = await updateChamado(id, {
-        ...updates,
-        ...(isClosingNow
-          ? {
-              dataFechamento: new Date().toISOString(),
-              closedByUsername: session?.user?.username ?? "",
-              closedByName: userDisplayName,
-              closedByRole: session?.user?.role ?? "",
-            }
-          : {}),
-        slaViolado:
-          nextStatus === "Fechado" && chamadoAnterior?.dataLimite
-            ? new Date(chamadoAnterior.dataLimite) < new Date()
-            : chamadoAnterior?.slaViolado ?? false,
-      });
-
-      if (updated) {
-        if (
-          updates.status &&
-          updates.status !== chamadoAnterior?.status &&
-          ["Em andamento", "Fechado"].includes(updates.status)
-        ) {
-          createAppNotification({
-            type: "status-chamado-atualizado",
-            title: `Chamado ${updates.status === "Fechado" ? "fechado" : "em andamento"}`,
-            message: `Sua solicitação "${updated.assunto}" foi atualizada para "${updates.status}".`,
-            recipients: {
-              usernames: [updated.solicitante],
-            },
-            context: {
-              chamadoId: updated.id,
-              status: updates.status,
-            },
-          });
-        }
-
-        await refreshChamados();
-      }
+      await updateChamado(id, updates);
+      await Promise.all([refreshChamados(), refreshNotifications()]);
+      return null;
     } catch (error) {
-      console.error("Falha ao atualizar chamado no backend:", error);
+      return getApiErrorMessage(error, "Não foi possível atualizar o chamado.");
     }
-  };
-
-  const handleClearNotifications = () => {
-    clearNotificationsForSession(session);
   };
 
   return (
@@ -267,7 +162,7 @@ function ContainerMain({ onBack, session }) {
         <div className="main-panel-head">
           <div>
             <h1>ClickHELP</h1>
-            <p>Centralize solicitação, acompanhe o andamento e mantenha o suporte de TI organizado.</p>
+            <p>Centralize solicitações, acompanhe o andamento e mantenha o suporte de TI organizado.</p>
           </div>
 
           <div className="main-user-card-stack">
@@ -282,7 +177,7 @@ function ContainerMain({ onBack, session }) {
                 className="main-user-action-button"
                 onClick={() => setOpenModalNovoUsuario(true)}
               >
-                Novo usuario
+                Novo usuário
               </button>
             ) : null}
           </div>
@@ -304,12 +199,12 @@ function ContainerMain({ onBack, session }) {
               type="button"
               className="main-notification-button"
               onClick={() => setOpenModalNotificacoes(true)}
-              aria-label="Abrir notificacoes"
-              title="Notificacoes"
+              aria-label="Abrir notificações"
+              title="Notificações"
             >
               <FaBell />
-              {unreadNotificationCount ? (
-                <span className="main-notification-badge">{Math.min(unreadNotificationCount, 9)}</span>
+              {unreadCount ? (
+                <span className="main-notification-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
               ) : null}
             </button>
 
@@ -323,7 +218,7 @@ function ContainerMain({ onBack, session }) {
                   className="botao-status-solicitacao"
                   onClick={() => setOpenModalHistorico(true)}
                 >
-                  HistÃ³rico
+                  Histórico
                 </button>
               </div>
             ) : null}
@@ -343,25 +238,27 @@ function ContainerMain({ onBack, session }) {
                 id="assunto-chamado"
                 type="text"
                 value={assunto}
+                maxLength={150}
                 onChange={(event) => setAssunto(event.target.value)}
                 onFocus={limparFeedbackFormulario}
-                placeholder="Ex.: impressora sem conexÃ£o"
+                placeholder="Ex.: impressora sem conexão"
               />
             </div>
 
             <div>
               <label htmlFor="solicitante-chamado">Solicitante</label>
-              <input id="solicitante-chamado" type="text" value={solicitante} readOnly />
+              <input id="solicitante-chamado" type="text" value={username} readOnly />
             </div>
 
             <div>
               <label htmlFor="local-chamado">Local</label>
               <CustomSelect
+                id="local-chamado"
                 className="form-select"
                 name="local"
                 value={local}
                 onChange={(event) => setLocal(event.target.value)}
-                options={localOptions}
+                options={LOCAL_OPTIONS}
                 placeholder="Selecione um local"
               />
             </div>
@@ -369,11 +266,12 @@ function ContainerMain({ onBack, session }) {
             <div>
               <label htmlFor="prioridade-chamado">Prioridade</label>
               <CustomSelect
+                id="prioridade-chamado"
                 className="form-select"
                 name="prioridade"
                 value={prioridade}
                 onChange={(event) => setPrioridade(event.target.value)}
-                options={prioridadeOptions}
+                options={PRIORIDADE_OPTIONS}
                 placeholder="Selecione a prioridade"
               />
             </div>
@@ -384,8 +282,9 @@ function ContainerMain({ onBack, session }) {
                 id="descreva-chamado"
                 rows="5"
                 value={problema}
+                maxLength={5000}
                 onChange={(event) => setProblema(event.target.value)}
-                placeholder="Conte com detalhes o que esta acontecendo."
+                placeholder="Conte com detalhes o que está acontecendo."
               />
             </div>
           </div>
@@ -397,7 +296,9 @@ function ContainerMain({ onBack, session }) {
           ) : null}
 
           <div className="enviar-help">
-            <button onClick={enviarSolicitacao}>Enviar solicitação</button>
+            <button onClick={enviarSolicitacao} disabled={isSending}>
+              {isSending ? "Enviando..." : "Enviar solicitação"}
+            </button>
           </div>
         </div>
       </div>
@@ -408,37 +309,43 @@ function ContainerMain({ onBack, session }) {
         solicitacoes={userSolicitacoes}
       />
 
-      <ModalChamaTi
-        isOpen={openModalTI}
-        onClose={() => setOpenModalTI(false)}
-        chamados={solicitacoes}
-        onUpdateChamado={handleUpdateChamado}
-        abrirSLA={() => setOpenModalSLA(true)}
-      />
+      {canViewTiPanel ? (
+        <ModalChamaTi
+          isOpen={openModalTI}
+          onClose={() => setOpenModalTI(false)}
+          chamados={solicitacoes}
+          onUpdateChamado={handleUpdateChamado}
+          abrirSLA={isAdmin ? () => setOpenModalSLA(true) : null}
+        />
+      ) : null}
 
-      <ModalHistoricoChama
-        isOpen={openModalHistorico}
-        onClose={() => setOpenModalHistorico(false)}
-        solicitacoes={solicitacoes.filter(
-          (item) =>
-            item.status === "Fechado" &&
-            (!item.closedByUsername || item.closedByUsername === session?.user?.username)
-        )}
-      />
+      {isAdmin ? (
+        <>
+          <ModalHistoricoChama
+            isOpen={openModalHistorico}
+            onClose={() => setOpenModalHistorico(false)}
+            solicitacoes={solicitacoes.filter(
+              (item) =>
+                item.status === "Fechado" &&
+                (!item.closedByUsername || item.closedByUsername === username)
+            )}
+          />
 
-      <ModalNovoUsuario
-        isOpen={openModalNovoUsuario}
-        onClose={() => setOpenModalNovoUsuario(false)}
-      />
+          <ModalNovoUsuario
+            isOpen={openModalNovoUsuario}
+            onClose={() => setOpenModalNovoUsuario(false)}
+          />
 
-      <ModalSLA isOpen={openModalSLA} onClose={() => setOpenModalSLA(false)} chamados={solicitacoes} />
+          <ModalSLA isOpen={openModalSLA} onClose={() => setOpenModalSLA(false)} chamados={solicitacoes} />
+        </>
+      ) : null}
 
       <ModalNotificacoes
         isOpen={openModalNotificacoes}
         onClose={() => setOpenModalNotificacoes(false)}
         notifications={notifications}
         archivedNotifications={archivedNotifications}
-        onClear={handleClearNotifications}
+        onClear={() => clearNotifications().catch(() => {})}
       />
     </section>
   );

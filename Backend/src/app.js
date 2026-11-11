@@ -1,21 +1,22 @@
+import { config } from "./config.js";
 import cors from "cors";
-import dotenv from "dotenv";
 import express from "express";
 import morgan from "morgan";
+import { HttpError } from "./lib/httpError.js";
 import routes from "./routes/index.js";
-
-dotenv.config();
 
 const app = express();
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_ORIGIN?.split(",").map((item) => item.trim()) || true,
-    credentials: true,
+    origin: config.frontendOrigins?.length ? config.frontendOrigins : "http://localhost:5173",
   })
 );
-app.use(express.json());
-app.use(morgan("dev"));
+app.use(express.json({ limit: "100kb" }));
+
+if (process.env.NODE_ENV !== "test") {
+  app.use(morgan("dev"));
+}
 
 app.use("/api", routes);
 
@@ -26,8 +27,21 @@ app.use((_req, res) => {
 });
 
 app.use((error, _req, res, _next) => {
+  if (error instanceof HttpError) {
+    return res.status(error.status).json({ message: error.message });
+  }
+
+  // Corpo da requisição com JSON malformado ou grande demais.
+  if (error.type === "entity.parse.failed") {
+    return res.status(400).json({ message: "Corpo da requisicao invalido." });
+  }
+
+  if (error.type === "entity.too.large") {
+    return res.status(413).json({ message: "Requisicao muito grande." });
+  }
+
   console.error(error);
-  res.status(500).json({
+  return res.status(500).json({
     message: "Erro interno do servidor.",
   });
 });
