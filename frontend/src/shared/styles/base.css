@@ -1,0 +1,115 @@
+:root {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text-strong);
+  background:
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--brand-primary) 24%, transparent),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      color-mix(in srgb, var(--brand-primary) 16%, transparent),
+      transparent 30%
+    ),
+    linear-gradient(135deg, #071322 0%, #0a1d34 45%, #08172b 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at center, black 30%, transparent 88%);
+  pointer-events: none;
+}
+
+button,
+input,
+textarea,
+select,
+a {
+  font: inherit;
+}
+
+/* Botões: transição suave, foco visível no teclado e estado desabilitado. */
+button {
+  white-space: nowrap;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--brand-light);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none;
+}
+
+/* Textos longos (assuntos, links, descrições) quebram em vez de estourar a tela. */
+h1,
+h2,
+h3,
+p,
+td,
+.ticket-meta span {
+  overflow-wrap: anywhere;
+}
+
+.app-shell {
+  min-height: 100vh;
+  width: 100%;
+  padding: 24px;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.login-view-shell {
+  position: relative;
+  width: 100%;
+  min-height: calc(100vh - 48px);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .app-shell {
+    padding: 16px;
+  }
+
+  .login-view-shell {
+    min-height: calc(100vh - 32px);
+  }
+}

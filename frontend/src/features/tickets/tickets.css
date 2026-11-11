@@ -1,0 +1,78 @@
+/* Cartões de chamado (Minhas solicitações, Painel TI e Histórico). */
+
+.tickets-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.ticket-card {
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--surface-3);
+}
+
+.ticket-card-top > div {
+  min-width: 0;
+}
+
+.ticket-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.ticket-card-top h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.ticket-card-top p {
+  margin: 0;
+  color: rgba(227, 242, 255, 0.76);
+  line-height: 1.5;
+}
+
+.ticket-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ticket-meta span {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--surface-1);
+  color: rgba(227, 242, 255, 0.8);
+  font-size: 12px;
+}
+
+.ticket-response {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.ticket-response strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.ticket-response p {
+  margin: 0;
+  color: rgba(227, 242, 255, 0.82);
+}
+
+.ti-actions-grid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .ticket-card-top {
+    flex-direction: column;
+  }
+}

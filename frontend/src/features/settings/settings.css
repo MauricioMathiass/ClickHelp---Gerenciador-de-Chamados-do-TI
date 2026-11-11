@@ -1,0 +1,221 @@
+/* Tela de Configurações (empresa, cadastros, SLA, feriados e rotinas). */
+
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.settings-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.settings-section {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+}
+
+.settings-section h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.settings-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+
+.settings-actions .feedback {
+  flex: 1 1 260px;
+  text-align: left;
+}
+
+/* Cores e logo */
+
+.color-row,
+.logo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.color-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.color-field input {
+  width: 46px;
+  height: 46px;
+  padding: 4px;
+  border: 1px solid var(--border-field);
+  border-radius: 12px;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.color-preview {
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  color: var(--text-strong);
+  font-weight: 700;
+}
+
+.logo-preview {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  padding: 8px;
+  border-radius: 16px;
+  background: var(--surface-2);
+}
+
+/* Listas editáveis */
+
+.list-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.list-editor-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.list-editor-error {
+  color: var(--color-danger-text);
+}
+
+.list-editor-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list-editor-items li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 6px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand-primary) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 26%, transparent);
+  font-size: 13px;
+}
+
+.list-editor-remove {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--text-strong);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.list-editor-remove:hover {
+  background: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+
+/* Dias da semana e caixas de seleção */
+
+.weekday-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.weekday-picker button {
+  min-width: 52px;
+  height: 38px;
+  border: 1px solid var(--border-field);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.weekday-picker button.is-active {
+  background: var(--brand-gradient);
+  border-color: transparent;
+  color: var(--text-strong);
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.check-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand-primary);
+}
+
+/* Rotinas */
+
+.routine-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+}
+
+.routine-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+textarea.routine-description {
+  min-height: 70px;
+}
+
+@media (max-width: 768px) {
+  .settings-grid,
+  .settings-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .list-editor-add {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,143 @@
+.custom-select {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-trigger {
+  width: 100%;
+  height: 48px;
+  padding: 0 52px 0 16px;
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 18%, transparent);
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1)), var(--surface-1);
+  color: #f2fbff;
+  text-align: left;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.custom-select-trigger:hover {
+  border-color: rgba(126, 212, 255, 0.32);
+  background-color: var(--surface-3);
+}
+
+.custom-select-trigger:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--brand-primary) 42%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-primary) 12%, transparent);
+}
+
+.custom-select-value {
+  color: rgba(210, 230, 248, 0.66);
+  font-weight: 500;
+}
+
+.custom-select-value.has-value {
+  color: #f2fbff;
+  font-weight: 600;
+}
+
+.custom-select-arrow {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid var(--brand-light);
+  border-bottom: 2px solid var(--brand-light);
+  transform: translateY(-60%) rotate(45deg);
+  transition: transform 0.2s ease;
+  pointer-events: none;
+}
+
+.custom-select.is-open .custom-select-arrow {
+  transform: translateY(-25%) rotate(-135deg);
+}
+
+.custom-select-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 16%, transparent);
+  border-radius: 24px;
+  background:
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--brand-primary) 14%, transparent),
+      transparent 30%
+    ),
+    linear-gradient(180deg, var(--surface-strong-1), var(--surface-strong-2));
+  box-shadow:
+    0 28px 60px rgba(2, 9, 22, 0.38),
+    inset 0 1px 0 var(--surface-3);
+  z-index: 20;
+}
+
+.custom-select-option {
+  min-height: 42px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  color: #eefbff;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.custom-select-option:hover {
+  background: var(--surface-3);
+}
+
+.custom-select-option.is-selected {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--brand-primary) 24%, transparent),
+    color-mix(in srgb, var(--brand-primary) 20%, transparent)
+  );
+  color: var(--text-strong);
+}
+
+.custom-select-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.custom-select.is-disabled .custom-select-trigger {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.custom-select.compact .custom-select-trigger {
+  height: 46px;
+}
+
+.custom-select.form-select .custom-select-trigger {
+  border-radius: 22px;
+}
+
+@media (max-width: 480px) {
+  .custom-select-trigger {
+    border-radius: 18px;
+  }
+
+  .custom-select-menu {
+    border-radius: 22px;
+  }
+}

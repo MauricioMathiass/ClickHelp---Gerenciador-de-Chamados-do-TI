@@ -1,0 +1,48 @@
+/* Formulário "Cadastrar solicitação". */
+
+.ticket-form {
+  padding: 28px;
+}
+
+.ticket-form-title h2 {
+  margin: 0 0 10px;
+  font-size: 28px;
+}
+
+.ticket-form-title p {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+}
+
+.ticket-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ticket-form-full {
+  grid-column: 1 / -1;
+}
+
+.ticket-form .feedback {
+  margin-top: 16px;
+}
+
+.ticket-form-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  .ticket-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .ticket-form {
+    padding: 20px 16px;
+    border-radius: 22px;
+  }
+}

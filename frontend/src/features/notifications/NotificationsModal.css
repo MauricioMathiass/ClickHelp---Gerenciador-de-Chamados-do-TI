@@ -1,0 +1,51 @@
+/* Lista e histórico de notificações. */
+
+.notifications-history {
+  display: grid;
+  gap: 14px;
+}
+
+.notification-history-card {
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--surface-3);
+}
+
+.notification-history-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.notification-history-top strong {
+  color: #f2fbff;
+  font-size: 16px;
+}
+
+.notification-history-top span {
+  color: rgba(227, 242, 255, 0.64);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.notification-history-card p {
+  margin: 0;
+  color: rgba(227, 242, 255, 0.8);
+  line-height: 1.6;
+}
+
+.notification-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .notification-history-top {
+    flex-direction: column;
+  }
+}

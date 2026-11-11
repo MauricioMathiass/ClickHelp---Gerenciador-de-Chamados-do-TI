@@ -1,0 +1,261 @@
+/* Relatório de SLA, filtros, tabela e gráfico. */
+
+.sla-table-wrapper {
+  overflow: auto;
+}
+
+/* Abas simples (ex.: filtro do histórico). */
+
+.sla-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sla-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.sla-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sla-table th,
+.sla-table td {
+  padding: 14px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--surface-3);
+}
+
+.sla-table th {
+  color: var(--brand-light);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sla-good {
+  color: #9cf7bc;
+  font-weight: 700;
+}
+
+.sla-bad {
+  color: #ffb4b4;
+  font-weight: 700;
+}
+
+.sla-empty {
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.sla-graphic-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.2fr) minmax(260px, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.sla-graphic-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.sla-graphic-panel,
+.sla-summary-card {
+  border-radius: 22px;
+  border: 1px solid var(--surface-3);
+  background: var(--surface-1);
+}
+
+.sla-graphic-panel {
+  padding: 20px;
+}
+
+.sla-pie-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.sla-pie-chart {
+  position: relative;
+  width: min(100%, 280px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow:
+    0 18px 36px rgba(2, 9, 22, 0.28),
+    inset 0 1px 0 var(--surface-3);
+}
+
+.sla-pie-core {
+  position: absolute;
+  inset: 22%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--brand-primary) 12%, transparent),
+      transparent 35%
+    ),
+    linear-gradient(180deg, var(--surface-strong-1), var(--surface-strong-2));
+  box-shadow: inset 0 1px 0 var(--surface-3);
+  text-align: center;
+}
+
+.sla-pie-core strong {
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1;
+}
+
+.sla-pie-core span {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sla-pie-legend {
+  display: grid;
+  gap: 12px;
+}
+
+.sla-legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--surface-1);
+}
+
+.sla-legend-item strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #f2fbff;
+}
+
+.sla-legend-item p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.sla-legend-dot {
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.dot-atendido {
+  background: var(--color-success);
+}
+
+.dot-aberto {
+  background: var(--color-info);
+}
+
+.dot-violado {
+  background: var(--color-danger);
+}
+
+.sla-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sla-summary-card {
+  min-height: 118px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+
+.sla-summary-card span {
+  color: rgba(227, 242, 255, 0.7);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sla-summary-card strong {
+  font-size: clamp(24px, 3.4vw, 34px);
+  line-height: 1;
+  color: #f2fbff;
+}
+
+@media (max-width: 768px) {
+  .sla-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .sla-graphic-layout,
+  .sla-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Tabela de SLA vira lista de cartões no celular. */
+  .sla-table thead {
+    display: none;
+  }
+
+  .sla-table,
+  .sla-table tbody,
+  .sla-table tr,
+  .sla-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .sla-table tr {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--surface-4);
+  }
+
+  .sla-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 4px;
+    border-bottom: none;
+    text-align: right;
+  }
+
+  .sla-table td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: var(--brand-light);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: left;
+  }
+
+  .sla-table td.sla-empty {
+    display: block;
+    text-align: center;
+  }
+
+  .sla-table td.sla-empty::before {
+    content: none;
+  }
+}

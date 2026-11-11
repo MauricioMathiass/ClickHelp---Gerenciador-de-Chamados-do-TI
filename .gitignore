@@ -14,7 +14,7 @@ dist/
 npm-debug.log*
 
 # Base de dados local do backend
-Backend/src/data/*.json
+backend/src/data/*.json
 *.tmp
 
 # Sistema / editores
