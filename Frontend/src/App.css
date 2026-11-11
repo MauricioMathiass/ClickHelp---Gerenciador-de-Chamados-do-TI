@@ -96,32 +96,6 @@ td,
   overflow: hidden;
 }
 
-.login-background-video {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  border-radius: 28px;
-}
-
-.login-background-video::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(135deg, rgba(7, 19, 34, 0.58), rgba(8, 23, 43, 0.74)),
-    radial-gradient(circle at top left, rgba(33, 176, 255, 0.16), transparent 24%),
-    radial-gradient(circle at bottom right, rgba(0, 220, 190, 0.14), transparent 28%);
-}
-
-.login-background-video video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scale(1.04);
-  filter: saturate(1.05) brightness(0.7);
-}
-
 @media (max-width: 480px) {
   .app-shell {
     padding: 16px;
@@ -129,9 +103,5 @@ td,
 
   .login-view-shell {
     min-height: calc(100vh - 32px);
-  }
-
-  .login-background-video {
-    border-radius: 22px;
   }
 }

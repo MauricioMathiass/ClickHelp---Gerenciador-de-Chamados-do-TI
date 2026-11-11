@@ -87,12 +87,6 @@ function App() {
       {session ? <ContainerMain onBack={handleBackToLogin} session={session} /> : null}
       {!session && currentView === "login" ? (
         <div className="login-view-shell">
-          <div className="login-background-video" aria-hidden="true">
-            <video autoPlay muted loop playsInline>
-              <source src="/login-background.mp4" type="video/mp4" />
-            </video>
-          </div>
-
           <CartaoLogin
             onForgotPassword={() => setCurrentView("forgot-password")}
             onLoginSuccess={handleLoginSuccess}
