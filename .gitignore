@@ -1,0 +1,23 @@
+# Dependências
+node_modules/
+
+# Build
+dist/
+
+# Variáveis de ambiente (manter apenas os .env.example)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Base de dados local do backend
+Backend/src/data/chamadosStore.json
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

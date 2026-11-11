@@ -1,5 +1,0 @@
-
-> clickhelp-backend@0.0.0 start
-> node src/server.js
-
-ClickHELP Backend rodando em http://localhost:3001
