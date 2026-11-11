@@ -1,4 +1,5 @@
 import ModalBase from "./ModalBase";
+import { formatPrioridade } from "../../utils/format";
 
 const percent = (value, total) => (total ? Math.round((value / total) * 100) : 0);
 
@@ -57,7 +58,7 @@ function ModalRelatorioGrafico({ isOpen, onClose, chamados }) {
       Assunto: item.assunto,
       Solicitante: item.solicitante,
       Status: item.status,
-      Prioridade: item.prioridade,
+      Prioridade: formatPrioridade(item.prioridade),
       "Data de abertura": item.dataCriacao
         ? new Date(item.dataCriacao).toLocaleString("pt-BR")
         : "Não informado",

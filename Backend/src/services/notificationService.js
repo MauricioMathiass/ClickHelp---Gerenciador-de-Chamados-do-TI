@@ -9,10 +9,16 @@ const ARCHIVE_LIMIT = 30;
 const normalizeUsername = (value) => String(value ?? "").trim().toLowerCase();
 
 const matchesUser = (notification, user) => {
+  const username = normalizeUsername(user.username);
   const usernames = (notification.recipients?.usernames ?? []).map(normalizeUsername);
   const roles = notification.recipients?.roles ?? [];
+  const excluded = (notification.recipients?.excludeUsernames ?? []).map(normalizeUsername);
 
-  return usernames.includes(normalizeUsername(user.username)) || roles.includes(user.role);
+  if (excluded.includes(username)) {
+    return false;
+  }
+
+  return usernames.includes(username) || roles.includes(user.role);
 };
 
 const toPublic = (notification, user) => {
@@ -39,6 +45,7 @@ export const createNotification = ({ type, title, message, recipients, context =
       recipients: {
         usernames: recipients?.usernames ?? [],
         roles: recipients?.roles ?? [],
+        excludeUsernames: recipients?.excludeUsernames ?? [],
       },
       context,
       createdAt: new Date().toISOString(),
@@ -65,7 +72,8 @@ export const listNotificationsForUser = async (user) => {
   };
 };
 
-export const markNotificationsAsRead = (user, ids) => {
+/** Marca como lidas as notificações informadas, ou todas quando `all` for true. */
+export const markNotificationsAsRead = (user, ids, { all = false } = {}) => {
   const username = normalizeUsername(user.username);
   const idSet = new Set(Array.isArray(ids) ? ids : []);
 
@@ -73,7 +81,7 @@ export const markNotificationsAsRead = (user, ids) => {
     let changed = false;
 
     const nextItems = items.map((item) => {
-      if (!idSet.has(item.id) || !matchesUser(item, user) || (item.readBy ?? []).includes(username)) {
+      if ((!all && !idSet.has(item.id)) || !matchesUser(item, user) || (item.readBy ?? []).includes(username)) {
         return item;
       }
 

@@ -5,7 +5,7 @@ import "./ContainerMain.css";
 import ModalChamados from "../Modal_Chamados/ModalChamados";
 import ModalChamaTi from "../Modal_Chamados/ModalChamaTi";
 import ModalHistoricoChama from "../Modal_Chamados/ModalHistoricoChama";
-import ModalNovoUsuario from "../Modal_Chamados/ModalNovoUsuario";
+import ModalUsuarios from "../Modal_Chamados/ModalUsuarios";
 import ModalSLA from "../Modal_Chamados/ModalSLA";
 import ModalNotificacoes from "../Modal_Chamados/ModalNotificacoes";
 import CustomSelect from "../Common/CustomSelect";
@@ -15,7 +15,7 @@ import { notifyNewTicketByEmail } from "../../services/emailNotifications";
 import {
   clearNotifications,
   getNotificationsState,
-  markNotificationsAsRead,
+  markAllNotificationsAsRead,
   refreshNotifications,
   subscribeNotifications,
 } from "../../services/notifications";
@@ -41,7 +41,7 @@ function ContainerMain({ onBack, session }) {
   const [openModalChamados, setOpenModalChamados] = useState(false);
   const [openModalTI, setOpenModalTI] = useState(false);
   const [openModalHistorico, setOpenModalHistorico] = useState(false);
-  const [openModalNovoUsuario, setOpenModalNovoUsuario] = useState(false);
+  const [openModalUsuarios, setOpenModalUsuarios] = useState(false);
   const [openModalSLA, setOpenModalSLA] = useState(false);
   const [openModalNotificacoes, setOpenModalNotificacoes] = useState(false);
   const [assunto, setAssunto] = useState("");
@@ -50,6 +50,7 @@ function ContainerMain({ onBack, session }) {
   const [problema, setProblema] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [solicitacoes, setSolicitacoes] = useState([]);
+  const [loadError, setLoadError] = useState("");
   const [notificationsState, setNotificationsState] = useState(getNotificationsState);
   const [feedback, setFeedback] = useState("");
   const [feedbackType, setFeedbackType] = useState("");
@@ -65,8 +66,14 @@ function ContainerMain({ onBack, session }) {
   const refreshChamados = useCallback(async () => {
     try {
       setSolicitacoes(await getChamados());
+      setLoadError("");
     } catch (error) {
-      console.error("Falha ao carregar chamados do backend:", error);
+      if (error.response?.status !== 401) {
+        setLoadError(
+          getApiErrorMessage(error, "Não foi possível atualizar os chamados.") +
+            " Os dados exibidos podem estar desatualizados."
+        );
+      }
     }
   }, []);
 
@@ -78,18 +85,12 @@ function ContainerMain({ onBack, session }) {
 
   useEffect(() => subscribeNotifications(setNotificationsState), [username]);
 
-  // Ao abrir o modal, marca como lidas as notificações exibidas.
+  // Ao abrir o modal, marca todas como lidas (inclusive as que não cabem na lista).
   useEffect(() => {
-    if (!openModalNotificacoes) {
-      return;
+    if (openModalNotificacoes && unreadCount > 0) {
+      markAllNotificationsAsRead().catch(() => {});
     }
-
-    const unreadIds = notifications.filter((item) => !item.read).map((item) => item.id);
-
-    if (unreadIds.length) {
-      markNotificationsAsRead(unreadIds).catch(() => {});
-    }
-  }, [openModalNotificacoes, notifications]);
+  }, [openModalNotificacoes, unreadCount]);
 
   const limparFormulario = () => {
     setAssunto("");
@@ -175,9 +176,9 @@ function ContainerMain({ onBack, session }) {
               <button
                 type="button"
                 className="main-user-action-button"
-                onClick={() => setOpenModalNovoUsuario(true)}
+                onClick={() => setOpenModalUsuarios(true)}
               >
-                Novo usuário
+                Usuários
               </button>
             ) : null}
           </div>
@@ -208,11 +209,13 @@ function ContainerMain({ onBack, session }) {
               ) : null}
             </button>
 
-            {isAdmin ? (
+            {canViewTiPanel ? (
               <div className="main-actions-admin">
-                <button className="botao-status-solicitacao" onClick={() => setOpenModalSLA(true)}>
-                  SLA
-                </button>
+                {isAdmin ? (
+                  <button className="botao-status-solicitacao" onClick={() => setOpenModalSLA(true)}>
+                    SLA
+                  </button>
+                ) : null}
 
                 <button
                   className="botao-status-solicitacao"
@@ -224,6 +227,12 @@ function ContainerMain({ onBack, session }) {
             ) : null}
           </div>
         </div>
+
+        {loadError ? (
+          <div className="form-feedback form-feedback-error main-load-error" role="alert">
+            {loadError}
+          </div>
+        ) : null}
 
         <div className="form-card">
           <div className="sub-titulo-help">
@@ -319,24 +328,29 @@ function ContainerMain({ onBack, session }) {
         />
       ) : null}
 
+      {canViewTiPanel ? (
+        <ModalHistoricoChama
+          isOpen={openModalHistorico}
+          onClose={() => setOpenModalHistorico(false)}
+          chamados={solicitacoes}
+          currentUsername={username}
+        />
+      ) : null}
+
       {isAdmin ? (
         <>
-          <ModalHistoricoChama
-            isOpen={openModalHistorico}
-            onClose={() => setOpenModalHistorico(false)}
-            solicitacoes={solicitacoes.filter(
-              (item) =>
-                item.status === "Fechado" &&
-                (!item.closedByUsername || item.closedByUsername === username)
-            )}
+          <ModalUsuarios
+            isOpen={openModalUsuarios}
+            onClose={() => setOpenModalUsuarios(false)}
+            currentUserId={session?.user?.id}
           />
 
-          <ModalNovoUsuario
-            isOpen={openModalNovoUsuario}
-            onClose={() => setOpenModalNovoUsuario(false)}
+          {/* Rotinas diárias fixas não entram no relatório de SLA. */}
+          <ModalSLA
+            isOpen={openModalSLA}
+            onClose={() => setOpenModalSLA(false)}
+            chamados={solicitacoes.filter((item) => !item.isFixedRoutine)}
           />
-
-          <ModalSLA isOpen={openModalSLA} onClose={() => setOpenModalSLA(false)} chamados={solicitacoes} />
         </>
       ) : null}
 

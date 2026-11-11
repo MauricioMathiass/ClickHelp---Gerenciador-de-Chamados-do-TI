@@ -1,5 +1,5 @@
 import { config } from "../config.js";
-import { badRequest } from "../lib/httpError.js";
+import { badRequest, notFound } from "../lib/httpError.js";
 import { createJsonStore } from "../lib/jsonStore.js";
 import { ROLE_ADMIN, ROLE_USUARIO, VALID_ROLES } from "../lib/roles.js";
 import { hashPassword, safeTextEqual, verifyPassword } from "../lib/security.js";
@@ -52,11 +52,94 @@ export const findUserByCredentials = async ({ username, password }) => {
 
   const user = (await store.read()).find((item) => item.username === normalizedUsername);
 
-  if (!user || !(await verifyPassword(plainPassword, user.passwordHash))) {
+  if (!user || user.active === false || !(await verifyPassword(plainPassword, user.passwordHash))) {
     return null;
   }
 
   return user;
+};
+
+/** Usuário ativo pelo id (usado para validar o token a cada requisição). */
+export const findActiveUserById = async (id) => {
+  const envAdmin = getEnvAdmin();
+
+  if (envAdmin && Number(id) === ENV_ADMIN_ID) {
+    return envAdmin;
+  }
+
+  const user = (await store.read()).find((item) => Number(item.id) === Number(id));
+  return user && user.active !== false ? user : null;
+};
+
+const toListItem = (user, fromEnv = false) => ({
+  ...sanitizeUser(user),
+  active: user.active !== false,
+  fromEnv,
+  createdAt: user.createdAt ?? null,
+});
+
+/** Lista de usuários para a tela de administração. */
+export const listUsers = async () => {
+  const envAdmin = getEnvAdmin();
+  const users = (await store.read()).map((user) => toListItem(user));
+  return envAdmin ? [toListItem(envAdmin, true), ...users] : users;
+};
+
+/**
+ * Atualiza perfil, status (ativo/inativo) e/ou senha de um usuário.
+ * O administrador do .env não pode ser alterado por aqui, e ninguém pode
+ * desativar a si mesmo ou tirar o próprio perfil de administrador.
+ */
+export const updateUser = async (id, { role, active, password }, actor) => {
+  const numericId = Number(id);
+
+  if (numericId === ENV_ADMIN_ID) {
+    throw badRequest("O administrador principal e definido no arquivo .env e nao pode ser alterado aqui.");
+  }
+
+  if (role !== undefined && !VALID_ROLES.includes(role)) {
+    throw badRequest("Perfil invalido.");
+  }
+
+  if (active !== undefined && typeof active !== "boolean") {
+    throw badRequest("Status invalido.");
+  }
+
+  const isSelf = Number(actor?.id) === numericId;
+
+  if (isSelf && (active === false || (role !== undefined && role !== ROLE_ADMIN))) {
+    throw badRequest("Voce nao pode desativar seu proprio usuario nem remover seu perfil de administrador.");
+  }
+
+  let passwordHash;
+
+  if (password !== undefined) {
+    if (String(password).length < MIN_PASSWORD_LENGTH) {
+      throw badRequest(`A senha precisa ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`);
+    }
+
+    passwordHash = await hashPassword(String(password));
+  }
+
+  return store.update((users) => {
+    const index = users.findIndex((user) => Number(user.id) === numericId);
+
+    if (index === -1) {
+      throw notFound("Usuario nao encontrado.");
+    }
+
+    const next = {
+      ...users[index],
+      ...(role !== undefined ? { role } : {}),
+      ...(active !== undefined ? { active } : {}),
+      ...(passwordHash ? { passwordHash, passwordUpdatedAt: new Date().toISOString() } : {}),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const nextUsers = [...users];
+    nextUsers[index] = next;
+    return { items: nextUsers, result: toListItem(next) };
+  });
 };
 
 const buildUsername = (name, surname, takenUsernames) => {

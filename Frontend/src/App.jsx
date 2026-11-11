@@ -4,7 +4,7 @@ import EsqueceuSenha from "./components/Login/EsqueceuSenha";
 import ContainerMain from "./components/MainContent/ContainerMain";
 import NotificationCenter from "./components/Common/NotificationCenter";
 import { SESSION_EXPIRED_EVENT } from "./services/api";
-import { getStoredSession, logoutUser } from "./services/auth";
+import { getStoredSession, logoutUser, refreshSessionUser } from "./services/auth";
 import {
   requestBrowserNotificationPermission,
   resetNotificationsState,
@@ -26,6 +26,21 @@ function App() {
     const handleSessionExpired = () => handleBackToLogin();
     window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, []);
+
+  // Sessão salva: confirma no backend e atualiza nome/perfil (podem ter mudado).
+  useEffect(() => {
+    const storedSession = getStoredSession();
+
+    if (!storedSession) {
+      return;
+    }
+
+    refreshSessionUser(storedSession).then((nextSession) => {
+      if (nextSession) {
+        setSession(nextSession);
+      }
+    });
   }, []);
 
   const handleLoginSuccess = (nextSession) => {

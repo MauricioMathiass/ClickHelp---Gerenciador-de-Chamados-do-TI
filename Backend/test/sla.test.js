@@ -29,3 +29,21 @@ test("abertura fora do expediente comeca a contar no proximo dia util as 8h", ()
   // entao: seg, ter, qua, qui (40h) + 8h na seg 23/11 -> 23/11 16h.
   assert.equal(buildSlaLimitFromDate(local(2026, 11, 13, 20)), local(2026, 11, 23, 16).toISOString());
 });
+
+test("feriados opcionais configuraveis (Carnaval, Corpus Christi e datas extras)", () => {
+  // 2027: Carnaval 08 e 09/02, Corpus Christi 27/05.
+  assert.equal(isBusinessDay(local(2027, 2, 8)), true);
+
+  process.env.SLA_FERIADOS_MOVEIS = "carnaval,corpus-christi";
+  process.env.SLA_FERIADOS_EXTRAS = "01-25";
+
+  try {
+    assert.equal(isBusinessDay(local(2027, 2, 8)), false);
+    assert.equal(isBusinessDay(local(2027, 2, 9)), false);
+    assert.equal(isBusinessDay(local(2027, 5, 27)), false);
+    assert.equal(isBusinessDay(local(2027, 1, 25)), false);
+  } finally {
+    delete process.env.SLA_FERIADOS_MOVEIS;
+    delete process.env.SLA_FERIADOS_EXTRAS;
+  }
+});

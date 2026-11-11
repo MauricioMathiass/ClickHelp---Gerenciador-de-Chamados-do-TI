@@ -13,6 +13,8 @@ function CustomSelect({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
+  const isOpenRef = useRef(false);
+  isOpenRef.current = isOpen;
 
   const selectedOption = useMemo(
     () => options.find((option) => option.value === value) ?? null,
@@ -27,7 +29,9 @@ function CustomSelect({
     };
 
     const handleEscape = (event) => {
-      if (event.key === "Escape") {
+      // Com a lista aberta, Esc fecha só a lista (e não o modal em volta).
+      if (event.key === "Escape" && isOpenRef.current) {
+        event.stopImmediatePropagation();
         setIsOpen(false);
       }
     };

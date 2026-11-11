@@ -3,6 +3,7 @@ import CustomDatePicker from "../Common/CustomDatePicker";
 import CustomSelect from "../Common/CustomSelect";
 import ModalBase from "./ModalBase";
 import ModalRelatorioGrafico from "./ModalRelatorioGrafico";
+import { formatPrioridade } from "../../utils/format";
 
 function getSlaLabel(item) {
   const deadline = new Date(item.dataLimite);
@@ -170,11 +171,13 @@ function ModalSLA({ isOpen, onClose, chamados }) {
 
                   return (
                     <tr key={item.id}>
-                      <td>{item.status}</td>
-                      <td>{item.assunto}</td>
-                      <td>{item.solicitante}</td>
-                      <td>{item.prioridade}</td>
-                      <td className={isBad ? "sla-bad" : "sla-good"}>{slaLabel}</td>
+                      <td data-label="Status">{item.status}</td>
+                      <td data-label="Assunto">{item.assunto}</td>
+                      <td data-label="Solicitante">{item.solicitante}</td>
+                      <td data-label="Prioridade">{formatPrioridade(item.prioridade)}</td>
+                      <td data-label="SLA" className={isBad ? "sla-bad" : "sla-good"}>
+                        {slaLabel}
+                      </td>
                     </tr>
                   );
                 })

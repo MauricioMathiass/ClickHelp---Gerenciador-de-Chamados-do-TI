@@ -4,14 +4,31 @@ import ModalBase from "./ModalBase";
 import CustomSelect from "../Common/CustomSelect";
 import { buildDisplayUsernamePreview, createUser } from "../../services/auth";
 
-const MIN_PASSWORD_LENGTH = 6;
-const ROLE_OPTIONS = [
-  { value: "Usuario", label: "Usuário" },
-  { value: "Analista de TI", label: "Analista de TI" },
-  { value: "Administrador", label: "Administrador" },
-];
+import { ROLE_OPTIONS } from "./roleOptions";
 
-function ModalNovoUsuario({ isOpen, onClose }) {
+const MIN_PASSWORD_LENGTH = 6;
+
+/** Mesma regra do backend: se o login já existe, acrescenta .2, .3... */
+const buildUsernamePreview = (name, surname, existingUsernames) => {
+  const base = buildDisplayUsernamePreview(name, surname);
+
+  if (!base) {
+    return "";
+  }
+
+  const taken = new Set(existingUsernames);
+  let candidate = base;
+  let counter = 1;
+
+  while (taken.has(candidate)) {
+    counter += 1;
+    candidate = `${base}.${counter}`;
+  }
+
+  return candidate;
+};
+
+function ModalNovoUsuario({ isOpen, onClose, existingUsernames = [] }) {
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +39,7 @@ function ModalNovoUsuario({ isOpen, onClose }) {
   const [feedbackType, setFeedbackType] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const displayUsername = buildDisplayUsernamePreview(name, surname);
+  const displayUsername = buildUsernamePreview(name, surname, existingUsernames);
 
   useEffect(() => {
     if (!isOpen) {

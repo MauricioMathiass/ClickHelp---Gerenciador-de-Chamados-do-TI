@@ -1,9 +1,14 @@
 import { config } from "../config.js";
 import { forbidden, unauthorized } from "../lib/httpError.js";
 import { verifyToken } from "../lib/security.js";
+import { findActiveUserById, sanitizeUser } from "../services/userService.js";
 
-/** Exige um token válido e coloca o usuário em `req.user`. */
-export const requireAuth = (req, _res, next) => {
+/**
+ * Exige um token válido e coloca o usuário em `req.user`.
+ * O usuário é recarregado a cada requisição: quem foi desativado perde o
+ * acesso na hora, e mudanças de perfil valem sem precisar entrar de novo.
+ */
+export const requireAuth = async (req, _res, next) => {
   const [scheme, token] = String(req.headers.authorization ?? "").split(" ");
   const payload = scheme === "Bearer" ? verifyToken(token, config.jwtSecret) : null;
 
@@ -11,14 +16,13 @@ export const requireAuth = (req, _res, next) => {
     return next(unauthorized());
   }
 
-  req.user = {
-    id: payload.sub,
-    username: payload.username,
-    name: payload.name,
-    role: payload.role,
-    department: payload.department,
-  };
+  const user = await findActiveUserById(payload.sub);
 
+  if (!user || user.username !== payload.username) {
+    return next(unauthorized());
+  }
+
+  req.user = sanitizeUser(user);
   return next();
 };
 

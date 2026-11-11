@@ -97,27 +97,54 @@ const createFixedChamado = (template, referenceDate) => {
   };
 };
 
-/** Cria (uma única vez por dia útil, a partir das 7h30) as rotinas fixas do admin. */
-const ensureFixedDailyChamados = () =>
-  store.update((items) => {
-    const now = new Date();
+export const AUTO_CLOSE_MESSAGE = "Encerrada automaticamente: rotina diaria de um dia anterior.";
 
-    if (!isBusinessDay(now) || now < buildFixedRoutineLaunchDate(now)) {
-      return { items: null, result: null };
+/**
+ * Mantém as rotinas fixas do admin:
+ * - encerra automaticamente as rotinas de dias anteriores que ficaram abertas
+ *   (para não se acumularem no Painel TI);
+ * - cria as rotinas do dia (uma vez por dia útil, a partir das 7h30).
+ * É chamada ao listar chamados e também periodicamente pelo servidor.
+ */
+export const ensureFixedDailyChamados = (now = new Date()) =>
+  store.update((items) => {
+    const dateKey = formatDateKey(now);
+    let changed = false;
+
+    let nextItems = items.map((item) => {
+      if (!item.isFixedRoutine || item.status === STATUS_FECHADO || item.fixedRoutineDateKey >= dateKey) {
+        return item;
+      }
+
+      changed = true;
+      return {
+        ...item,
+        status: STATUS_FECHADO,
+        resposta: item.resposta || AUTO_CLOSE_MESSAGE,
+        dataAtualizacao: now.toISOString(),
+        dataFechamento: now.toISOString(),
+        autoClosed: true,
+      };
+    });
+
+    if (isBusinessDay(now) && now >= buildFixedRoutineLaunchDate(now)) {
+      const missing = FIXED_ADMIN_REQUESTS.filter(
+        (template) =>
+          !nextItems.some(
+            (item) =>
+              item.isFixedRoutine &&
+              item.fixedRoutineCode === template.code &&
+              item.fixedRoutineDateKey === dateKey
+          )
+      ).map((template) => createFixedChamado(template, now));
+
+      if (missing.length) {
+        changed = true;
+        nextItems = [...missing, ...nextItems];
+      }
     }
 
-    const dateKey = formatDateKey(now);
-    const missing = FIXED_ADMIN_REQUESTS.filter(
-      (template) =>
-        !items.some(
-          (item) =>
-            item.isFixedRoutine &&
-            item.fixedRoutineCode === template.code &&
-            item.fixedRoutineDateKey === dateKey
-        )
-    ).map((template) => createFixedChamado(template, now));
-
-    return { items: missing.length ? [...missing, ...items] : null, result: null };
+    return { items: changed ? nextItems : null, result: null };
   });
 
 const canSeeChamado = (chamado, user) => {
@@ -182,7 +209,7 @@ export const createChamado = async (data, user) => {
     type: "novo-chamado-ti",
     title: "Nova solicitação recebida",
     message: `${user.username} abriu o chamado "${assunto}" e aguarda atendimento da equipe de TI.`,
-    recipients: { roles: TI_ROLES },
+    recipients: { roles: TI_ROLES, excludeUsernames: [user.username] },
     context: { chamadoId: chamado.id },
   });
 

@@ -1,14 +1,5 @@
 import ModalBase from "./ModalBase";
-
-function formatDate(dateValue) {
-  return new Date(dateValue).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import { formatDateTime as formatDate, formatPrioridade, statusClassName } from "../../utils/format";
 
 function ModalChamados({ isOpen, onClose, solicitacoes }) {
   return (
@@ -22,7 +13,7 @@ function ModalChamados({ isOpen, onClose, solicitacoes }) {
                   <h3>{item.assunto}</h3>
                   <p>{item.problema}</p>
                 </div>
-                <span className={`ticket-status status-${item.status.toLowerCase().replace(/\s+/g, "-")}`}>
+                <span className={`ticket-status ${statusClassName(item.status)}`}>
                   {item.status}
                 </span>
               </div>
@@ -30,7 +21,7 @@ function ModalChamados({ isOpen, onClose, solicitacoes }) {
               <div className="ticket-meta">
                 <span>Solicitante: {item.solicitante}</span>
                 <span>Local: {item.local}</span>
-                <span>Prioridade: {item.prioridade}</span>
+                <span>Prioridade: {formatPrioridade(item.prioridade)}</span>
                 <span>Abertura: {formatDate(item.dataCriacao)}</span>
               </div>
 

@@ -1,7 +1,13 @@
 import { config } from "../config.js";
 import { badRequest, unauthorized } from "../lib/httpError.js";
 import { signToken } from "../lib/security.js";
-import { createUser, findUserByCredentials, sanitizeUser } from "../services/userService.js";
+import {
+  createUser,
+  findUserByCredentials,
+  listUsers,
+  sanitizeUser,
+  updateUser,
+} from "../services/userService.js";
 
 const SESSION_TTL_SECONDS = 12 * 60 * 60; // 12 horas
 const REMEMBER_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 dias
@@ -44,5 +50,19 @@ export const registerUser = async (req, res) => {
   res.status(201).json({
     message: "Usuario cadastrado com sucesso.",
     user: sanitizeUser(user),
+  });
+};
+
+export const getUsers = async (_req, res) => {
+  res.status(200).json({ users: await listUsers() });
+};
+
+export const updateUserHandler = async (req, res) => {
+  const { role, active, password } = req.body ?? {};
+  const user = await updateUser(req.params.id, { role, active, password }, req.user);
+
+  res.status(200).json({
+    message: "Usuario atualizado com sucesso.",
+    user,
   });
 };

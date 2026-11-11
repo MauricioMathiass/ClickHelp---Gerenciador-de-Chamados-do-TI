@@ -42,6 +42,12 @@ export const markNotificationsAsRead = async (ids) => {
   return applyResponse(data);
 };
 
+/** Marca todas as notificações do usuário como lidas (inclusive as fora da lista exibida). */
+export const markAllNotificationsAsRead = async () => {
+  const { data } = await api.post("/notifications/read", { all: true });
+  return applyResponse(data);
+};
+
 /** Move as notificações do usuário atual para o histórico. */
 export const clearNotifications = async () => {
   const { data } = await api.post("/notifications/clear");

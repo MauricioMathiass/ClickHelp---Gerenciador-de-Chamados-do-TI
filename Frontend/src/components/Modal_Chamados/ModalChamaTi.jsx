@@ -1,26 +1,13 @@
 import { useMemo, useState } from "react";
 import ModalBase from "./ModalBase";
 import CustomSelect from "../Common/CustomSelect";
+import { formatDateTime as formatDate, formatPrioridade, statusClassName } from "../../utils/format";
 
 const STATUS_OPTIONS = [
   { value: "Aberto", label: "Aberto" },
   { value: "Em andamento", label: "Em andamento" },
   { value: "Fechado", label: "Fechado" },
 ];
-
-function formatDate(dateValue) {
-  if (!dateValue) {
-    return "Não informado";
-  }
-
-  return new Date(dateValue).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function ModalChamaTi({ isOpen, onClose, chamados, onUpdateChamado, abrirSLA }) {
   const [draftResponses, setDraftResponses] = useState({});
@@ -95,7 +82,7 @@ function ModalChamaTi({ isOpen, onClose, chamados, onUpdateChamado, abrirSLA }) 
                   <h3>{item.assunto}</h3>
                   <p>{item.problema}</p>
                 </div>
-                <span className={`ticket-status status-${item.status.toLowerCase().replace(/\s+/g, "-")}`}>
+                <span className={`ticket-status ${statusClassName(item.status)}`}>
                   {item.status}
                 </span>
               </div>
@@ -103,7 +90,7 @@ function ModalChamaTi({ isOpen, onClose, chamados, onUpdateChamado, abrirSLA }) 
               <div className="ticket-meta">
                 <span>Solicitante: {item.solicitante}</span>
                 <span>Local: {item.local}</span>
-                <span>Prioridade: {item.prioridade}</span>
+                <span>Prioridade: {formatPrioridade(item.prioridade)}</span>
                 <span>Aberto em: {formatDate(item.dataCriacao ?? item.dataAtualizacao)}</span>
                 <span>Prazo SLA: {formatDate(item.dataLimite)}</span>
               </div>

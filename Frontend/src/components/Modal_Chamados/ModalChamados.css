@@ -101,6 +101,10 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.ticket-card-top > div {
+  min-width: 0;
+}
+
 .ticket-card-top {
   display: flex;
   align-items: flex-start;
@@ -139,6 +143,10 @@
 
 .status-fechado {
   color: #b8f8c6;
+}
+
+.status-inativo {
+  color: #ffb4b4;
 }
 
 .ticket-meta {
@@ -212,6 +220,71 @@
 
 .sla-table-wrapper {
   overflow: auto;
+}
+
+/* Abas simples (ex.: filtro do histórico). */
+.segmented-control {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.segmented-control button {
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(227, 242, 255, 0.78);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segmented-control button.is-active {
+  background: linear-gradient(180deg, #1ed4df, #1388d1);
+  color: #ffffff;
+}
+
+/* Gestão de usuários. */
+.user-card-inactive {
+  opacity: 0.72;
+}
+
+.user-card-note {
+  margin: 0;
+  color: rgba(227, 242, 255, 0.7);
+  font-size: 13px;
+}
+
+.user-card-actions {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.user-card-reset {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.user-card-reset input {
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(123, 191, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  outline: none;
+}
+
+.user-card .admin-user-feedback {
+  margin-top: 12px;
 }
 
 .sla-toolbar {
@@ -640,5 +713,57 @@
 
   .admin-user-grid {
     grid-template-columns: 1fr;
+  }
+
+  .user-card-actions,
+  .user-card-reset {
+    grid-template-columns: 1fr;
+  }
+
+  /* Tabela de SLA vira lista de cartões no celular. */
+  .sla-table thead {
+    display: none;
+  }
+
+  .sla-table,
+  .sla-table tbody,
+  .sla-table tr,
+  .sla-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .sla-table tr {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .sla-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 4px;
+    border-bottom: none;
+    text-align: right;
+  }
+
+  .sla-table td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: #8ce8ff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: left;
+  }
+
+  .sla-table td.sla-empty {
+    display: block;
+    text-align: center;
+  }
+
+  .sla-table td.sla-empty::before {
+    content: none;
   }
 }

@@ -135,3 +135,23 @@ export const createUser = async ({ name, surname, password, role }) => {
     throw new Error(getApiErrorMessage(error, "Nao foi possivel cadastrar o usuario."));
   }
 };
+
+/**
+ * Atualiza os dados do usuário da sessão salva (nome, perfil) com o que está
+ * no backend agora. Devolve a sessão atualizada, ou null se falhar.
+ */
+export const refreshSessionUser = async (session) => {
+  try {
+    const { data } = await api.get("/auth/me");
+
+    if (!data?.user) {
+      return null;
+    }
+
+    const nextSession = { ...session, user: data.user };
+    persistSession(nextSession, Boolean(session.rememberMe));
+    return nextSession;
+  } catch {
+    return null;
+  }
+};

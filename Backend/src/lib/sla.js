@@ -1,6 +1,10 @@
 // Regras de SLA: 48 horas úteis, de segunda a sexta, das 8h às 18h,
 // desconsiderando feriados nacionais. Usa o fuso horário do processo
 // (definido em src/config.js, padrão America/Sao_Paulo).
+//
+// Feriados opcionais (configuráveis no .env):
+// - SLA_FERIADOS_MOVEIS=carnaval,corpus-christi  (datas calculadas a partir da Páscoa)
+// - SLA_FERIADOS_EXTRAS=01-25,07-09              (datas fixas extras, formato MM-DD)
 
 export const WORK_START_HOUR = 8;
 export const WORK_END_HOUR = 18;
@@ -43,16 +47,41 @@ export const calculateEasterSunday = (year) => {
   return new Date(year, month - 1, day);
 };
 
-const getGoodFridayKey = (year) => {
-  const goodFriday = calculateEasterSunday(year);
-  goodFriday.setDate(goodFriday.getDate() - 2);
-  return formatMonthDay(goodFriday);
+const parseList = (value) =>
+  String(value ?? "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+
+const offsetFromEaster = (year, days) => {
+  const date = calculateEasterSunday(year);
+  date.setDate(date.getDate() + days);
+  return formatMonthDay(date);
 };
 
-export const isNationalHoliday = (date) => {
-  const monthDay = formatMonthDay(date);
-  return FIXED_NATIONAL_HOLIDAYS.has(monthDay) || getGoodFridayKey(date.getFullYear()) === monthDay;
+// Feriados móveis opcionais, em dias a partir do domingo de Páscoa.
+const OPTIONAL_MOVABLE_HOLIDAYS = {
+  carnaval: [-48, -47], // segunda e terça de Carnaval
+  "corpus-christi": [60],
 };
+
+/** Datas (MM-DD) que não são dias úteis no ano informado. */
+const getHolidayKeys = (year) => {
+  const keys = new Set(FIXED_NATIONAL_HOLIDAYS);
+  keys.add(offsetFromEaster(year, -2)); // Sexta-feira Santa
+
+  parseList(process.env.SLA_FERIADOS_MOVEIS).forEach((name) => {
+    (OPTIONAL_MOVABLE_HOLIDAYS[name] ?? []).forEach((offset) => keys.add(offsetFromEaster(year, offset)));
+  });
+
+  parseList(process.env.SLA_FERIADOS_EXTRAS)
+    .filter((item) => /^\d{2}-\d{2}$/.test(item))
+    .forEach((item) => keys.add(item));
+
+  return keys;
+};
+
+export const isNationalHoliday = (date) => getHolidayKeys(date.getFullYear()).has(formatMonthDay(date));
 
 export const isBusinessDay = (date) => {
   const day = date.getDay();

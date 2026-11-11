@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./CustomDatePicker.css";
+import { capitalizeFirst } from "../../utils/format";
 
 const MONTH_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
   month: "long",
@@ -48,6 +49,8 @@ function CustomDatePicker({ id, name, onChange, placeholder = "dd/mm/aaaa", valu
   const [isOpen, setIsOpen] = useState(false);
   const [visibleMonth, setVisibleMonth] = useState(() => parseDateValue(value) ?? new Date());
   const containerRef = useRef(null);
+  const isOpenRef = useRef(false);
+  isOpenRef.current = isOpen;
   const selectedDate = useMemo(() => parseDateValue(value), [value]);
   const calendarDays = useMemo(() => buildCalendarDays(visibleMonth), [visibleMonth]);
 
@@ -65,7 +68,9 @@ function CustomDatePicker({ id, name, onChange, placeholder = "dd/mm/aaaa", valu
     };
 
     const handleEscape = (event) => {
-      if (event.key === "Escape") {
+      // Com a lista aberta, Esc fecha só a lista (e não o modal em volta).
+      if (event.key === "Escape" && isOpenRef.current) {
+        event.stopImmediatePropagation();
         setIsOpen(false);
       }
     };
@@ -141,7 +146,7 @@ function CustomDatePicker({ id, name, onChange, placeholder = "dd/mm/aaaa", valu
               &lt;
             </button>
 
-            <strong>{MONTH_FORMATTER.format(visibleMonth)}</strong>
+            <strong>{capitalizeFirst(MONTH_FORMATTER.format(visibleMonth))}</strong>
 
             <button
               type="button"

@@ -40,8 +40,42 @@ body::before {
 
 button,
 input,
+textarea,
+select,
 a {
   font: inherit;
+}
+
+/* Botões: transição suave, foco visível no teclado e estado desabilitado. */
+button {
+  white-space: nowrap;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+button:focus-visible {
+  outline: 2px solid #68d6ff;
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none;
+}
+
+/* Textos longos (assuntos, links, descrições) quebram em vez de estourar a tela. */
+h1,
+h2,
+h3,
+p,
+td,
+.ticket-meta span {
+  overflow-wrap: anywhere;
 }
 
 .app-shell {

@@ -251,3 +251,124 @@ describe("notificacoes", () => {
     assert.equal(after.unreadCount, 0);
   });
 });
+
+describe("gestao de usuarios", () => {
+  const findUser = async (username) =>
+    (await api("GET", "/auth/users", { token: adminToken })).data.users.find((user) => user.username === username);
+
+  test("lista usuarios apenas para administrador", async () => {
+    assert.equal((await api("GET", "/auth/users", { token: analistaToken })).status, 403);
+
+    const { status, data } = await api("GET", "/auth/users", { token: adminToken });
+    assert.equal(status, 200);
+    assert.ok(data.users.some((user) => user.fromEnv && user.username === "admin.teste"));
+    assert.ok(data.users.every((user) => !("passwordHash" in user)));
+  });
+
+  test("redefine senha e desativa usuario, que perde acesso na hora", async () => {
+    await api("POST", "/auth/register", {
+      token: adminToken,
+      body: { name: "Carlos", surname: "Temp", password: "senha123" },
+    });
+    const carlos = await findUser("carlos.temp");
+    const carlosToken = await login("carlos.temp", "senha123");
+
+    const reset = await api("PATCH", `/auth/users/${carlos.id}`, {
+      token: adminToken,
+      body: { password: "nova-senha-1" },
+    });
+    assert.equal(reset.status, 200);
+    assert.equal(await login("carlos.temp", "senha123"), undefined);
+    assert.ok(await login("carlos.temp", "nova-senha-1"));
+
+    await api("PATCH", `/auth/users/${carlos.id}`, { token: adminToken, body: { active: false } });
+    assert.equal((await api("GET", "/chamados", { token: carlosToken })).status, 401);
+    assert.equal(await login("carlos.temp", "nova-senha-1"), undefined);
+  });
+
+  test("mudanca de perfil vale sem novo login", async () => {
+    await api("POST", "/auth/register", {
+      token: adminToken,
+      body: { name: "Bia", surname: "Promovida", password: "senha123" },
+    });
+    const bia = await findUser("bia.promovida");
+    const biaToken = await login("bia.promovida", "senha123");
+    const { data } = await api("POST", "/chamados", { token: mariaToken, body: novoChamado() });
+
+    const antes = await api("PATCH", `/chamados/${data.chamado.id}`, {
+      token: biaToken,
+      body: { status: "Em andamento" },
+    });
+    assert.equal(antes.status, 403);
+
+    await api("PATCH", `/auth/users/${bia.id}`, { token: adminToken, body: { role: "Analista de TI" } });
+    const depois = await api("PATCH", `/chamados/${data.chamado.id}`, {
+      token: biaToken,
+      body: { status: "Em andamento" },
+    });
+    assert.equal(depois.status, 200);
+  });
+
+  test("admin do .env nao pode ser alterado e perfil invalido e recusado", async () => {
+    assert.equal((await api("PATCH", "/auth/users/1", { token: adminToken, body: { active: false } })).status, 400);
+
+    const maria = await findUser("maria.silva");
+    const invalido = await api("PATCH", `/auth/users/${maria.id}`, {
+      token: adminToken,
+      body: { role: "Chefe" },
+    });
+    assert.equal(invalido.status, 400);
+  });
+});
+
+describe("rotinas diarias", () => {
+  test("cria as rotinas do dia e encerra as de dias anteriores", async () => {
+    const { ensureFixedDailyChamados } = await import("../src/services/chamadoService.js");
+
+    // Quarta 11/11/2026 08:00 e depois quinta 12/11/2026 08:00 (horário local).
+    await ensureFixedDailyChamados(new Date(2026, 10, 11, 8, 0));
+    await ensureFixedDailyChamados(new Date(2026, 10, 12, 8, 0));
+
+    const { data } = await api("GET", "/chamados", { token: adminToken });
+    const rotinas = data.chamados.filter((item) => item.isFixedRoutine);
+    const quarta = rotinas.filter((item) => item.fixedRoutineDateKey === "2026-11-11");
+    const quinta = rotinas.filter((item) => item.fixedRoutineDateKey === "2026-11-12");
+
+    assert.equal(quarta.length, 4);
+    assert.ok(quarta.every((item) => item.status === "Fechado" && item.autoClosed));
+    assert.equal(quinta.length, 4);
+    assert.ok(quinta.every((item) => item.status === "Aberto"));
+  });
+
+  test("nao duplica rotinas com chamadas repetidas", async () => {
+    const { ensureFixedDailyChamados } = await import("../src/services/chamadoService.js");
+    await Promise.all([1, 2, 3].map(() => ensureFixedDailyChamados(new Date(2026, 10, 12, 9, 0))));
+
+    const { data } = await api("GET", "/chamados", { token: adminToken });
+    assert.equal(data.chamados.filter((item) => item.fixedRoutineDateKey === "2026-11-12").length, 4);
+  });
+});
+
+describe("notificacoes (ajustes)", () => {
+  test("quem e da TI e abre um chamado nao recebe o aviso de novo chamado", async () => {
+    const { data } = await api("POST", "/chamados", { token: analistaToken, body: novoChamado("Do analista") });
+    const analista = (await api("GET", "/notifications", { token: analistaToken })).data;
+    const admin = (await api("GET", "/notifications", { token: adminToken })).data;
+
+    const doChamado = (list) => list.filter((item) => item.context.chamadoId === data.chamado.id);
+    assert.deepEqual(doChamado(analista.notifications).map((item) => item.type), ["solicitacao-enviada"]);
+    assert.ok(doChamado(admin.notifications).some((item) => item.type === "novo-chamado-ti"));
+  });
+
+  test("marcar todas como lidas zera o contador mesmo acima do limite exibido", async () => {
+    for (let index = 0; index < 35; index += 1) {
+      await api("POST", "/chamados", { token: joaoToken, body: novoChamado(`Lote ${index}`) });
+    }
+
+    const before = (await api("GET", "/notifications", { token: adminToken })).data;
+    assert.ok(before.unreadCount > before.notifications.length);
+
+    const after = (await api("POST", "/notifications/read", { token: adminToken, body: { all: true } })).data;
+    assert.equal(after.unreadCount, 0);
+  });
+});
