@@ -11,7 +11,8 @@ export const setApiToken = (token) => {
 };
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:3001/api",
+  // Padrão "/api": o Vite repassa para o backend (ver vite.config.js).
+  baseURL: import.meta.env.VITE_API_URL || "/api",
   timeout: 15000,
 });
 

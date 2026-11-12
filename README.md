@@ -12,7 +12,7 @@ Pode ser usado por **qualquer empresa**: nome, logo, cores, locais, categorias, 
 Pré-requisito: Node.js 20 ou mais recente.
 
 ```bash
-# 1. Instalar dependências (raiz, backend e frontend)
+# 1. Instalar dependências (backend e frontend)
 npm run install:all
 
 # 2. Configurar variáveis de ambiente
@@ -25,6 +25,14 @@ npm run dev:frontend
 ```
 
 Acesse `http://localhost:5173`, entre com o administrador do `.env` e abra **Configurações** para ajustar o sistema à sua empresa.
+
+O navegador fala só com o frontend: as chamadas para `/api` são repassadas pelo Vite ao backend (`frontend/vite.config.js`). Por isso o mesmo passo a passo funciona na sua máquina, em outro computador da rede e no GitHub Codespaces.
+
+### GitHub Codespaces
+
+1. Siga os passos acima no terminal do Codespace (`npm run install:all`, copiar os `.env.example` e subir os dois servidores).
+2. Abra a porta **5173** pela aba **Portas** (Ports). Não é preciso abrir a 3001: o frontend repassa as chamadas para o backend dentro do próprio Codespace.
+3. Se o seu `frontend/.env` foi criado antes desta orientação e tem `VITE_API_URL=http://localhost:3001/api`, troque para `VITE_API_URL=/api` e reinicie o `npm run dev:frontend`.
 
 ## Comandos
 

@@ -4,17 +4,10 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 
 export default [
-  { ignores: ["**/node_modules/**", "**/dist/**", "backend/src/data/**"] },
+  { ignores: ["node_modules/**", "dist/**"] },
   js.configs.recommended,
   {
-    // Backend (Node.js)
-    files: ["backend/**/*.js", "*.js"],
-    languageOptions: { ecmaVersion: "latest", sourceType: "module", globals: globals.node },
-    rules: { "no-unused-vars": ["error", { argsIgnorePattern: "^_" }] },
-  },
-  {
-    // Frontend (React no navegador)
-    files: ["frontend/**/*.{js,jsx}"],
+    files: ["**/*.{js,jsx}"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
@@ -29,7 +22,7 @@ export default [
     },
   },
   {
-    files: ["frontend/vite.config.js"],
+    files: ["vite.config.js"],
     languageOptions: { globals: globals.node },
   },
 ];

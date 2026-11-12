@@ -2,25 +2,16 @@
   "name": "clickhelp-workspace",
   "private": true,
   "scripts": {
-    "install:all": "npm install && npm --prefix backend install && npm --prefix frontend install",
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "start:backend": "npm --prefix backend run start",
     "build:frontend": "npm --prefix frontend run build",
     "preview:frontend": "npm --prefix frontend run preview",
     "test": "npm --prefix backend test",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.5",
-    "eslint": "^9.39.5",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.7",
-    "globals": "^17.14.0",
-    "prettier": "^3.10.0"
-  },
-  "type": "module"
+    "lint": "npm --prefix backend run lint && npm --prefix frontend run lint",
+    "lint:fix": "npm --prefix backend run lint:fix && npm --prefix frontend run lint:fix",
+    "format": "npm --prefix backend run format && npm --prefix frontend run format",
+    "format:check": "npm --prefix backend run format:check && npm --prefix frontend run format:check"
+  }
 }
