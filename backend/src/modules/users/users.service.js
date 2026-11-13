@@ -1,12 +1,12 @@
 import { config } from "../../config/env.js";
 import { badRequest, notFound } from "../../shared/http/httpError.js";
-import { createJsonStore } from "../../shared/storage/jsonStore.js";
+import { query, toIso } from "../../shared/db/database.js";
 import { ROLE_ADMIN, ROLE_USUARIO, VALID_ROLES } from "../../shared/roles.js";
 import { hashPassword, safeTextEqual, verifyPassword } from "../../shared/security.js";
 
-const store = createJsonStore("usersStore.json");
 const ENV_ADMIN_ID = 1;
 const MIN_PASSWORD_LENGTH = 6;
+const UNIQUE_VIOLATION = "23505";
 
 const normalizeUsername = (value) =>
   String(value ?? "")
@@ -21,7 +21,21 @@ const normalizeNameToken = (value) =>
     .replace(/[^a-z0-9]+/g, ".")
     .replace(/^\.+|\.+$/g, "");
 
-/** Administrador inicial, definido no .env (não fica gravado em arquivo). */
+const fromRow = (row) => ({
+  id: row.id,
+  username: row.username,
+  passwordHash: row.password_hash,
+  name: row.name,
+  role: row.role,
+  department: row.department,
+  active: row.active,
+  passwordVersion: row.password_version,
+  passwordUpdatedAt: toIso(row.password_updated_at),
+  createdAt: toIso(row.created_at),
+  updatedAt: toIso(row.updated_at),
+});
+
+/** Administrador inicial, definido no .env (não fica gravado no banco). */
 const getEnvAdmin = () => {
   if (!config.admin.username || !config.admin.password) {
     return null;
@@ -53,9 +67,10 @@ export const findUserByCredentials = async ({ username, password }) => {
     return safeTextEqual(plainPassword.trim(), config.admin.password) ? envAdmin : null;
   }
 
-  const user = (await store.read()).find((item) => item.username === normalizedUsername);
+  const [row] = await query("SELECT * FROM users WHERE username = $1", [normalizedUsername]);
+  const user = row ? fromRow(row) : null;
 
-  if (!user || user.active === false || !(await verifyPassword(plainPassword, user.passwordHash))) {
+  if (!user || !user.active || !(await verifyPassword(plainPassword, user.passwordHash))) {
     return null;
   }
 
@@ -65,13 +80,18 @@ export const findUserByCredentials = async ({ username, password }) => {
 /** Usuário ativo pelo id (usado para validar o token a cada requisição). */
 export const findActiveUserById = async (id) => {
   const envAdmin = getEnvAdmin();
+  const numericId = Number(id);
 
-  if (envAdmin && Number(id) === ENV_ADMIN_ID) {
+  if (envAdmin && numericId === ENV_ADMIN_ID) {
     return envAdmin;
   }
 
-  const user = (await store.read()).find((item) => Number(item.id) === Number(id));
-  return user && user.active !== false ? user : null;
+  if (!Number.isInteger(numericId)) {
+    return null;
+  }
+
+  const [row] = await query("SELECT * FROM users WHERE id = $1 AND active", [numericId]);
+  return row ? fromRow(row) : null;
 };
 
 const toListItem = (user, fromEnv = false) => ({
@@ -84,7 +104,8 @@ const toListItem = (user, fromEnv = false) => ({
 /** Lista de usuários para a tela de administração. */
 export const listUsers = async () => {
   const envAdmin = getEnvAdmin();
-  const users = (await store.read()).map((user) => toListItem(user));
+  const rows = await query("SELECT * FROM users ORDER BY id");
+  const users = rows.map((row) => toListItem(fromRow(row)));
   return envAdmin ? [toListItem(envAdmin, true), ...users] : users;
 };
 
@@ -95,11 +116,14 @@ export const listUsers = async () => {
  */
 export const updateUser = async (id, { role, active, password, department }, actor) => {
   const nextDepartment = department === undefined ? undefined : String(department).trim().slice(0, 60);
-
   const numericId = Number(id);
 
   if (numericId === ENV_ADMIN_ID) {
     throw badRequest("O administrador principal é definido no arquivo .env e não pode ser alterado aqui.");
+  }
+
+  if (!Number.isInteger(numericId)) {
+    throw notFound("Usuário não encontrado.");
   }
 
   if (role !== undefined && !VALID_ROLES.includes(role)) {
@@ -118,7 +142,7 @@ export const updateUser = async (id, { role, active, password, department }, act
     );
   }
 
-  let passwordHash;
+  let passwordHash = null;
 
   if (password !== undefined) {
     if (String(password).length < MIN_PASSWORD_LENGTH) {
@@ -128,32 +152,27 @@ export const updateUser = async (id, { role, active, password, department }, act
     passwordHash = await hashPassword(String(password));
   }
 
-  return store.update((users) => {
-    const index = users.findIndex((user) => Number(user.id) === numericId);
+  // Campos não enviados (null) mantêm o valor atual. Trocar a senha muda a
+  // versão dela, o que encerra as sessões abertas do usuário.
+  const [row] = await query(
+    `UPDATE users SET
+       role = COALESCE($2, role),
+       active = COALESCE($3, active),
+       department = COALESCE($4, department),
+       password_hash = COALESCE($5, password_hash),
+       password_updated_at = CASE WHEN $5::text IS NULL THEN password_updated_at ELSE NOW() END,
+       password_version = CASE WHEN $5::text IS NULL THEN password_version ELSE password_version + 1 END,
+       updated_at = NOW()
+     WHERE id = $1
+     RETURNING *`,
+    [numericId, role ?? null, active ?? null, nextDepartment ?? null, passwordHash]
+  );
 
-    if (index === -1) {
-      throw notFound("Usuário não encontrado.");
-    }
+  if (!row) {
+    throw notFound("Usuário não encontrado.");
+  }
 
-    const next = {
-      ...users[index],
-      ...(role !== undefined ? { role } : {}),
-      ...(active !== undefined ? { active } : {}),
-      ...(nextDepartment !== undefined ? { department: nextDepartment } : {}),
-      ...(passwordHash
-        ? {
-            passwordHash,
-            passwordUpdatedAt: new Date().toISOString(),
-            passwordVersion: Number(users[index].passwordVersion ?? 0) + 1,
-          }
-        : {}),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const nextUsers = [...users];
-    nextUsers[index] = next;
-    return { items: nextUsers, result: toListItem(next) };
-  });
+  return toListItem(fromRow(row));
 };
 
 const buildUsername = (name, surname, takenUsernames) => {
@@ -195,28 +214,40 @@ export const createUser = async ({ name, surname, password, role, department }) 
   }
 
   const passwordHash = await hashPassword(plainPassword);
+  const userDepartment = String(department ?? "")
+    .trim()
+    .slice(0, 60);
 
-  return store.update((users) => {
-    const envAdmin = getEnvAdmin();
-    const taken = new Set(users.map((user) => user.username));
+  // Dois cadastros iguais ao mesmo tempo podem escolher o mesmo login: o
+  // índice único do banco barra o segundo, que tenta de novo com outro número.
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      const rows = await query("SELECT username FROM users");
+      const taken = new Set(rows.map((item) => item.username));
+      const envAdmin = getEnvAdmin();
 
-    if (envAdmin) {
-      taken.add(envAdmin.username);
+      if (envAdmin) {
+        taken.add(envAdmin.username);
+      }
+
+      const [row] = await query(
+        `INSERT INTO users (username, password_hash, name, role, department)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+        [
+          buildUsername(trimmedName, trimmedSurname, taken),
+          passwordHash,
+          `${trimmedName} ${trimmedSurname}`,
+          nextRole,
+          userDepartment,
+        ]
+      );
+
+      return fromRow(row);
+    } catch (error) {
+      if (error.code !== UNIQUE_VIOLATION || attempt >= 5) {
+        throw error;
+      }
     }
-
-    const highestId = users.reduce((highest, user) => Math.max(highest, Number(user.id) || 0), ENV_ADMIN_ID);
-    const newUser = {
-      id: highestId + 1,
-      username: buildUsername(trimmedName, trimmedSurname, taken),
-      passwordHash,
-      name: `${trimmedName} ${trimmedSurname}`,
-      role: nextRole,
-      department: String(department ?? "")
-        .trim()
-        .slice(0, 60),
-      createdAt: new Date().toISOString(),
-    };
-
-    return { items: [...users, newUser], result: newUser };
-  });
+  }
 };

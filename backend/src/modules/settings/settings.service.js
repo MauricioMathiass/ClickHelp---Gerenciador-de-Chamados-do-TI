@@ -1,9 +1,19 @@
 import { badRequest } from "../../shared/http/httpError.js";
-import { createJsonStore } from "../../shared/storage/jsonStore.js";
+import { query } from "../../shared/db/database.js";
 import { createCalendar, MOVABLE_HOLIDAYS } from "../tickets/sla.js";
 import { DEFAULT_SETTINGS } from "./settings.defaults.js";
 
-const store = createJsonStore("settings.json", { kind: "object" });
+const readSaved = async () => {
+  const [row] = await query("SELECT data FROM settings WHERE id = 1");
+  return row?.data ?? null;
+};
+
+const save = (settings) =>
+  query(
+    `INSERT INTO settings (id, data, updated_at) VALUES (1, $1::jsonb, NOW())
+     ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
+    [JSON.stringify(settings)]
+  );
 
 export const PRIORITIES = ["baixa", "media", "alta"];
 
@@ -177,7 +187,7 @@ const withDefaults = (saved) => {
 
 export const getSettings = async () => {
   if (!cache) {
-    cache = withDefaults(await store.read());
+    cache = withDefaults(await readSaved());
   }
 
   return clone(cache);
@@ -192,7 +202,7 @@ export const getPublicSettings = async () => {
 export const updateSettings = async (input) => {
   const next = normalizeSettings(input);
 
-  await store.update(() => ({ items: next, result: null }));
+  await save(next);
   cache = next;
   return clone(next);
 };
@@ -201,9 +211,4 @@ export const updateSettings = async (input) => {
 export const getWorkCalendar = async () => {
   const settings = await getSettings();
   return createCalendar({ ...settings.sla, holidays: settings.holidays });
-};
-
-/** Usado pelos testes para ler de novo o arquivo de configurações. */
-export const clearSettingsCache = () => {
-  cache = null;
 };

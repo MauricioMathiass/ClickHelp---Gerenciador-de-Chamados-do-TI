@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { query, toIso, transaction } from "../../shared/db/database.js";
 import { badRequest, notFound } from "../../shared/http/httpError.js";
 import { ROLE_ADMIN, TI_ROLES } from "../../shared/roles.js";
 import { createNotification } from "../notifications/notifications.service.js";
@@ -9,19 +10,56 @@ import {
   STATUS_ABERTO,
   STATUS_EM_ANDAMENTO,
   STATUS_FECHADO,
-  ticketsStore as store,
   VALID_STATUSES,
-} from "./tickets.store.js";
+} from "./tickets.constants.js";
 
 const MAX_ASSUNTO = 150;
 const MAX_LOCAL = 60;
 const MAX_PROBLEMA = 5000;
 const MAX_RESPOSTA = 5000;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const normalizeText = (value) =>
   String(value ?? "")
     .trim()
     .toLowerCase();
+
+/** Linha do banco → chamado da API (campos de fechamento só quando existem). */
+const fromRow = (row) => {
+  const chamado = {
+    id: row.id,
+    assunto: row.assunto,
+    solicitante: row.solicitante,
+    local: row.local,
+    categoria: row.categoria,
+    prioridade: row.prioridade,
+    problema: row.problema,
+    userId: row.user_id,
+    status: row.status,
+    resposta: row.resposta,
+    dataCriacao: toIso(row.data_criacao),
+    dataAtualizacao: toIso(row.data_atualizacao),
+    dataLimite: toIso(row.data_limite),
+  };
+
+  const optional = {
+    visibility: row.visibility,
+    dataFechamento: toIso(row.data_fechamento),
+    closedByUsername: row.closed_by_username,
+    closedByName: row.closed_by_name,
+    closedByRole: row.closed_by_role,
+    slaViolado: row.sla_violado,
+    autoClosed: row.auto_closed,
+  };
+
+  Object.entries(optional).forEach(([key, value]) => {
+    if (value !== null && value !== undefined) {
+      chamado[key] = value;
+    }
+  });
+
+  return chamado;
+};
 
 const requireText = (value, label, maxLength) => {
   const text = String(value ?? "").trim();
@@ -79,13 +117,28 @@ const canSeeChamado = (chamado, user) => {
   return normalizeText(chamado.solicitante) === normalizeText(user.username);
 };
 
-const sortByNewest = (items) =>
-  [...items].sort((first, second) => new Date(second.dataCriacao) - new Date(first.dataCriacao));
-
-/** Lista os chamados que o usuário autenticado pode ver. */
+/** Lista os chamados que o usuário autenticado pode ver (mais novos primeiro). */
 export const listChamados = async (user) => {
-  const chamados = await store.read();
-  return sortByNewest(chamados.filter((item) => canSeeChamado(item, user)));
+  if (user.role === ROLE_ADMIN) {
+    return (await query("SELECT * FROM chamados ORDER BY data_criacao DESC")).map(fromRow);
+  }
+
+  const visibleToTeam = "visibility IS DISTINCT FROM $1";
+
+  if (TI_ROLES.includes(user.role)) {
+    const rows = await query(`SELECT * FROM chamados WHERE ${visibleToTeam} ORDER BY data_criacao DESC`, [
+      ADMIN_ONLY_VISIBILITY,
+    ]);
+    return rows.map(fromRow);
+  }
+
+  const rows = await query(
+    `SELECT * FROM chamados
+     WHERE ${visibleToTeam} AND LOWER(solicitante) = $2
+     ORDER BY data_criacao DESC`,
+    [ADMIN_ONLY_VISIBILITY, normalizeText(user.username)]
+  );
+  return rows.map(fromRow);
 };
 
 export const createChamado = async (data, user) => {
@@ -108,23 +161,29 @@ export const createChamado = async (data, user) => {
 
   const now = new Date().toISOString();
   const calendar = await getWorkCalendar();
-  const chamado = {
-    id: crypto.randomUUID(),
-    assunto,
-    solicitante: user.username,
-    local,
-    categoria,
-    prioridade,
-    problema,
-    userId: user.id,
-    status: STATUS_ABERTO,
-    resposta: "",
-    dataCriacao: now,
-    dataAtualizacao: now,
-    dataLimite: buildSlaLimitFromDate(now, settings.sla.hoursByPriority[prioridade], calendar),
-  };
+  const dataLimite = buildSlaLimitFromDate(now, settings.sla.hoursByPriority[prioridade], calendar);
 
-  await store.update((items) => ({ items: [chamado, ...items], result: null }));
+  const [row] = await query(
+    `INSERT INTO chamados
+       (id, assunto, solicitante, local, categoria, prioridade, problema, user_id,
+        status, resposta, data_criacao, data_atualizacao, data_limite)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, '', $10, $10, $11)
+     RETURNING *`,
+    [
+      crypto.randomUUID(),
+      assunto,
+      user.username,
+      local,
+      categoria,
+      prioridade,
+      problema,
+      user.id,
+      STATUS_ABERTO,
+      now,
+      dataLimite,
+    ]
+  );
+  const chamado = fromRow(row);
 
   await notifySafely({
     type: "solicitacao-enviada",
@@ -170,49 +229,61 @@ export const updateChamado = async (id, data, user) => {
     throw badRequest(`A resposta aceita no máximo ${MAX_RESPOSTA} caracteres.`);
   }
 
-  const { previous, updated } = await store.update((items) => {
-    const index = items.findIndex((item) => item.id === id);
+  if (!UUID.test(String(id))) {
+    throw notFound("Chamado não encontrado.");
+  }
 
-    if (index === -1 || !canSeeChamado(items[index], user)) {
+  const { previous, updated } = await transaction(async (tx) => {
+    // FOR UPDATE trava o chamado até o fim da transação: duas pessoas
+    // alterando ao mesmo tempo são atendidas uma depois da outra.
+    const [row] = await tx("SELECT * FROM chamados WHERE id = $1 FOR UPDATE", [id]);
+    const current = row ? fromRow(row) : null;
+
+    if (!current || !canSeeChamado(current, user)) {
       throw notFound("Chamado não encontrado.");
     }
 
-    const current = items[index];
     const nextStatus = hasStatus ? data.status : current.status;
     const nextResposta = hasResposta ? data.resposta.trim() : (current.resposta ?? "");
-    const now = new Date();
-    const next = {
-      ...current,
-      status: nextStatus,
-      resposta: nextResposta,
-      dataAtualizacao: now.toISOString(),
-    };
 
     // Chamado fechado precisa sempre ter resposta (ao fechar e ao editar depois).
     if (nextStatus === STATUS_FECHADO && !nextResposta) {
       throw badRequest("Escreva a resposta da TI antes de fechar o chamado.");
     }
 
-    if (nextStatus === STATUS_FECHADO && current.status !== STATUS_FECHADO) {
-      next.dataFechamento = now.toISOString();
-      next.closedByUsername = user.username;
-      next.closedByName = user.name;
-      next.closedByRole = user.role;
-      next.slaViolado = current.dataLimite ? new Date(current.dataLimite) < now : false;
+    const now = new Date();
+    const closing = nextStatus === STATUS_FECHADO && current.status !== STATUS_FECHADO;
+    const reopening = nextStatus !== STATUS_FECHADO && current.status === STATUS_FECHADO;
+
+    let closeFields = [
+      current.dataFechamento ?? null,
+      current.closedByUsername ?? null,
+      current.closedByName ?? null,
+      current.closedByRole ?? null,
+      current.slaViolado ?? null,
+      current.autoClosed ?? null,
+    ];
+
+    if (closing) {
+      const slaViolado = current.dataLimite ? new Date(current.dataLimite) < now : false;
+      closeFields = [now.toISOString(), user.username, user.name, user.role, slaViolado, null];
     }
 
-    if (nextStatus !== STATUS_FECHADO && current.status === STATUS_FECHADO) {
-      delete next.dataFechamento;
-      delete next.closedByUsername;
-      delete next.closedByName;
-      delete next.closedByRole;
-      delete next.slaViolado;
-      delete next.autoClosed;
+    if (reopening) {
+      closeFields = [null, null, null, null, null, null];
     }
 
-    const nextItems = [...items];
-    nextItems[index] = next;
-    return { items: nextItems, result: { previous: current, updated: next } };
+    const [saved] = await tx(
+      `UPDATE chamados SET
+         status = $2, resposta = $3, data_atualizacao = $4,
+         data_fechamento = $5, closed_by_username = $6, closed_by_name = $7,
+         closed_by_role = $8, sla_violado = $9, auto_closed = $10
+       WHERE id = $1
+       RETURNING *`,
+      [id, nextStatus, nextResposta, now.toISOString(), ...closeFields]
+    );
+
+    return { previous: current, updated: fromRow(saved) };
   });
 
   const statusChanged = previous.status !== updated.status;
@@ -220,7 +291,7 @@ export const updateChamado = async (id, data, user) => {
   if (
     statusChanged &&
     [STATUS_EM_ANDAMENTO, STATUS_FECHADO].includes(updated.status) &&
-    !updated.isFixedRoutine
+    updated.visibility !== ADMIN_ONLY_VISIBILITY
   ) {
     await notifySafely({
       type: "status-chamado-atualizado",

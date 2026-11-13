@@ -12,8 +12,10 @@ export const setApiToken = (token) => {
 
 export const api = axios.create({
   // Padrão "/api": o Vite repassa para o backend (ver vite.config.js).
+  // Publicado no Netlify, VITE_API_URL aponta para a API no Render.
   baseURL: import.meta.env.VITE_API_URL || "/api",
-  timeout: 15000,
+  // O plano gratuito do Render "dorme" sem uso e leva até ~1 minuto para acordar.
+  timeout: 70000,
 });
 
 api.interceptors.request.use((request) => {

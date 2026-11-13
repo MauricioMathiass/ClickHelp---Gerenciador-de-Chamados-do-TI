@@ -1,0 +1,16 @@
+# Publicação do frontend no Netlify.
+# No painel do Netlify, cadastre a variável VITE_API_URL com o endereço da API
+# no Render, terminando em /api (ex.: https://clickhelp-api.onrender.com/api).
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Qualquer endereço abre o app (aplicação de página única).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

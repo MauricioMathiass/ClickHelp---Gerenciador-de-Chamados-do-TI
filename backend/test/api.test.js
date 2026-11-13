@@ -1,18 +1,17 @@
 import assert from "node:assert/strict";
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
-// Ambiente isolado: dados em pasta temporária e admin de teste.
-const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), "clickhelp-test-"));
+// Ambiente isolado: banco embutido só na memória (nunca toca no Neon nem nos
+// dados reais) e admin de teste. Variáveis já definidas não são trocadas pelo .env.
+// Para testar contra um PostgreSQL de verdade, use TEST_DATABASE_URL com um banco VAZIO.
 process.env.NODE_ENV = "test";
-process.env.DATA_DIR = dataDir;
+process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || "memory://";
 process.env.ADMIN_USERNAME = "admin.teste";
 process.env.ADMIN_PASSWORD = "senha-admin-teste";
 process.env.JWT_SECRET = "segredo-de-teste-com-mais-de-32-caracteres!!";
 
 const { default: app } = await import("../src/app.js");
+const { closeDatabase, query } = await import("../src/shared/db/database.js");
 
 let server;
 let baseUrl;
@@ -93,8 +92,8 @@ before(async () => {
 });
 
 after(async () => {
-  server.close();
-  await fs.rm(dataDir, { recursive: true, force: true });
+  await new Promise((resolve) => server.close(resolve));
+  await closeDatabase();
 });
 
 describe("autenticacao", () => {
@@ -106,9 +105,12 @@ describe("autenticacao", () => {
   });
 
   test("senhas ficam gravadas como hash", async () => {
-    const raw = await fs.readFile(path.join(dataDir, "usersStore.json"), "utf8");
-    assert.ok(!raw.includes("senha123"));
-    assert.match(raw, /scrypt\$/);
+    const rows = await query("SELECT password_hash FROM users");
+    assert.ok(rows.length > 0);
+    rows.forEach(({ password_hash: hash }) => {
+      assert.ok(!hash.includes("senha123"));
+      assert.match(hash, /^scrypt\$/);
+    });
   });
 
   test("cadastro exige administrador", async () => {

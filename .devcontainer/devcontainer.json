@@ -1,0 +1,23 @@
+{
+  "name": "ClickHELP",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "postCreateCommand": "npm run install:all && (test -f backend/.env || cp backend/.env.example backend/.env) && (test -f frontend/.env || cp frontend/.env.example frontend/.env)",
+  "forwardPorts": [5173, 3001],
+  "portsAttributes": {
+    "5173": { "label": "Frontend", "onAutoForward": "openBrowser" },
+    "3001": { "label": "API", "onAutoForward": "silent" }
+  },
+  "secrets": {
+    "DATABASE_URL": {
+      "description": "Connection string da branch dev no Neon. Sem ela, o backend usa um banco local embutido."
+    },
+    "JWT_SECRET": { "description": "Segredo dos tokens de login (mínimo de 32 caracteres)." },
+    "ADMIN_USERNAME": { "description": "Login do administrador inicial." },
+    "ADMIN_PASSWORD": { "description": "Senha do administrador inicial." }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+    }
+  }
+}

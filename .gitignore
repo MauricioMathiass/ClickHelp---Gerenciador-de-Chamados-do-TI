@@ -13,8 +13,9 @@ dist/
 *.log
 npm-debug.log*
 
-# Base de dados local do backend
+# Base de dados local do backend (banco embutido e arquivos JSON antigos)
 backend/src/data/*.json
+backend/src/data/pgdata/
 *.tmp
 
 # Sistema / editores

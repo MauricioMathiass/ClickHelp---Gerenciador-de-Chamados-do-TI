@@ -1,0 +1,36 @@
+# Publicação do backend no Render (Blueprint: New → Blueprint → este repositório).
+# Os valores marcados com "sync: false" são pedidos pelo Render na criação e
+# nunca ficam no repositório.
+services:
+  - type: web
+    name: clickhelp-api
+    runtime: node
+    plan: free
+    # Região mais próxima do banco no Neon (AWS São Paulo / sa-east-1).
+    region: virginia
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: TZ
+        value: America/Sao_Paulo
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        value: Administrador
+      - key: ADMIN_DEPARTMENT
+        value: TI
+      # Endereço do site no Netlify (ex.: https://clickhelp.netlify.app)
+      - key: FRONTEND_ORIGIN
+        sync: false

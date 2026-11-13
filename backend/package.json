@@ -10,15 +10,18 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --ignore-path ../.prettierignore --write .",
-    "format:check": "prettier --ignore-path ../.prettierignore --check ."
+    "format:check": "prettier --ignore-path ../.prettierignore --check .",
+    "db:import": "node scripts/import-json.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
-    "morgan": "^1.10.1"
+    "morgan": "^1.10.1",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "@eslint/js": "^9.39.5",
     "eslint": "^9.39.5",
     "globals": "^17.14.0",
