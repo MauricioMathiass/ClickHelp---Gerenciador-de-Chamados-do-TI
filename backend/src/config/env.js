@@ -26,7 +26,9 @@ const readSecret = () => {
 export const config = {
   port: Number(process.env.PORT) || 3001,
   frontendOrigins: process.env.FRONTEND_ORIGIN?.split(",")
-    .map((item) => item.trim())
+    // "https://site.netlify.app/" (com barra no fim) não bate com a origem do
+    // navegador e o CORS bloquearia todas as chamadas.
+    .map((item) => item.trim().replace(/\/+$/, ""))
     .filter(Boolean),
   jwtSecret: readSecret(),
   admin: {

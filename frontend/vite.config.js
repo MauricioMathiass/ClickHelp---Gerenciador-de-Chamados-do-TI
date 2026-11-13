@@ -4,6 +4,15 @@ import react from "@vitejs/plugin-react";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
+  // No Netlify não existe backend em "/api": sem VITE_API_URL apontando para
+  // a API no Render, o site abriria mas nenhuma chamada funcionaria.
+  if (process.env.NETLIFY === "true" && !/^https?:\/\//i.test(env.VITE_API_URL || "")) {
+    throw new Error(
+      "Defina VITE_API_URL nas variáveis do site no Netlify com o endereço da API " +
+        "no Render, terminando em /api (ex.: https://clickhelp-api.onrender.com/api)."
+    );
+  }
+
   // O navegador chama "/api" no mesmo endereço do frontend e o Vite repassa
   // para o backend. Assim funciona em qualquer lugar (máquina local,
   // GitHub Codespaces, servidor) sem depender de "localhost" no navegador.

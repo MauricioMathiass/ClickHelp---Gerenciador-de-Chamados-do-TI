@@ -6,8 +6,11 @@ services:
     name: clickhelp-api
     runtime: node
     plan: free
-    # Região mais próxima do banco no Neon (AWS São Paulo / sa-east-1).
+    # Crie o projeto no Neon na região AWS US East 1 (N. Virginia), a mesma
+    # desta API, para cada consulta ao banco não atravessar continentes.
     region: virginia
+    # Publica a cada push na main, mas só depois de o GitHub Actions (CI) passar.
+    autoDeployTrigger: checksPass
     rootDir: backend
     buildCommand: npm ci
     startCommand: npm start

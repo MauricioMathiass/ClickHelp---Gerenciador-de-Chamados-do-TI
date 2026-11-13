@@ -52,12 +52,48 @@ O repositório tem um `.devcontainer`: ao criar o Codespace, as dependências s�
 
 ## Publicação (Netlify + Render + Neon)
 
-1. **Neon:** no projeto, copie a connection string da branch principal (`production`), com _Connection pooling_ ligado.
-2. **Render:** **New → Blueprint** e escolha este repositório. O `render.yaml` cria a API `clickhelp-api` e pede `DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD` e `FRONTEND_ORIGIN` (endereço do site no Netlify). O `JWT_SECRET` é gerado pelo Render.
-3. **Netlify:** importe o repositório (o `netlify.toml` já define pasta, build e publicação) e cadastre a variável `VITE_API_URL` com o endereço da API terminando em `/api` (ex.: `https://clickhelp-api.onrender.com/api`).
-4. Volte ao Render e confira se `FRONTEND_ORIGIN` tem o endereço exato do site no Netlify.
+Tudo parte do GitHub: cada push na `main` passa pelo CI (GitHub Actions), e o Render e o Netlify publicam a nova versão sozinhos.
 
-No plano gratuito do Render, a API "dorme" após 15 minutos sem uso: o primeiro acesso depois disso leva até cerca de 1 minuto.
+```
+GitHub (main) → CI (lint, testes, build) → Render (API) + Netlify (site) → Neon (banco)
+```
+
+### 1. Neon (banco de dados)
+
+1. Em [console.neon.tech](https://console.neon.tech), crie um projeto na região **AWS US East 1 (N. Virginia)**, a mesma da API no Render.
+2. Na branch principal (`production`), clique em **Connect**, ligue **Connection pooling** e copie a connection string (o servidor tem `-pooler` no nome). Ela será o `DATABASE_URL` do Render.
+3. (Opcional) Crie uma branch `dev` e use a connection string dela no `backend/.env` ou nos secrets do Codespaces, para desenvolver sem mexer nos dados reais.
+
+As tabelas são criadas automaticamente quando a API inicia.
+
+### 2. Render (API)
+
+1. Em [dashboard.render.com](https://dashboard.render.com), **New → Blueprint** e escolha este repositório. O `render.yaml` cria o serviço `clickhelp-api`.
+2. Preencha as variáveis pedidas:
+
+| Variável          | Valor                                                              |
+| ----------------- | ------------------------------------------------------------------ |
+| `DATABASE_URL`    | connection string do Neon (passo 1)                                |
+| `ADMIN_USERNAME`  | login do administrador inicial                                     |
+| `ADMIN_PASSWORD`  | senha do administrador inicial                                     |
+| `FRONTEND_ORIGIN` | endereço do site no Netlify (ex.: `https://clickhelp.netlify.app`) |
+| `JWT_SECRET`      | gerado pelo Render, não precisa preencher                          |
+
+3. Depois do deploy, abra `https://<sua-api>.onrender.com/api/health`: deve responder `"status": "ok"`.
+
+O Render publica a cada push na `main`, só depois de o CI passar (`autoDeployTrigger: checksPass`). No plano gratuito, a API "dorme" após 15 minutos sem uso e o primeiro acesso depois disso leva até cerca de 1 minuto.
+
+### 3. Netlify (site)
+
+1. Em [app.netlify.com](https://app.netlify.com), **Add new project → Import an existing project → GitHub** e escolha este repositório. O `netlify.toml` já define pasta, build e publicação.
+2. Em **Site configuration → Environment variables**, cadastre `VITE_API_URL` com o endereço da API terminando em `/api` (ex.: `https://clickhelp-api.onrender.com/api`). Sem ela, o build no Netlify falha de propósito, com uma mensagem explicando o que falta.
+3. (Opcional) Cadastre também as variáveis `VITE_EMAILJS_*` e `VITE_NOTIFICATION_EMAIL_TO` para o aviso por e-mail de novos chamados.
+4. Faça um novo deploy (**Deploys → Trigger deploy**), pois as variáveis `VITE_*` entram no momento do build.
+
+### 4. Conferência final
+
+- No Render, `FRONTEND_ORIGIN` precisa ser o endereço exato do site no Netlify (vários endereços podem ser separados por vírgula). Se o login mostrar "Não foi possível conectar ao servidor", é quase sempre isso ou o `VITE_API_URL`.
+- Entre no site com o administrador do Render e ajuste a empresa em **Configurações**.
 
 ### Importar dados da versão com arquivos JSON
 
@@ -132,6 +168,7 @@ frontend/
 
 netlify.toml                 publicação do frontend
 render.yaml                  publicação do backend
+.github/workflows/ci.yml     CI: lint, testes e build a cada push
 .devcontainer/               ambiente do GitHub Codespaces
 ```
 
