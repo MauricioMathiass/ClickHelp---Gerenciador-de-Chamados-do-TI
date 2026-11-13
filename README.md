@@ -86,7 +86,7 @@ O Render publica a cada push na `main`, só depois de o CI passar (`autoDeployTr
 ### 3. Netlify (site)
 
 1. Em [app.netlify.com](https://app.netlify.com), **Add new project → Import an existing project → GitHub** e escolha este repositório. O `netlify.toml` já define pasta, build e publicação.
-2. Em **Site configuration → Environment variables**, cadastre `VITE_API_URL` com o endereço da API terminando em `/api` (ex.: `https://clickhelp-api.onrender.com/api`). Sem ela, o build no Netlify falha de propósito, com uma mensagem explicando o que falta.
+2. Em **Site configuration → Environment variables**, cadastre `VITE_API_URL` com o endereço da API (ex.: `https://clickhelp-api.onrender.com/api`; se faltar o `/api` no fim, o site acrescenta sozinho). Sem ela, o build no Netlify falha de propósito, com uma mensagem explicando o que falta.
 3. (Opcional) Cadastre também as variáveis `VITE_EMAILJS_*` e `VITE_NOTIFICATION_EMAIL_TO` para o aviso por e-mail de novos chamados.
 4. Faça um novo deploy (**Deploys → Trigger deploy**), pois as variáveis `VITE_*` entram no momento do build.
 

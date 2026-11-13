@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   if (process.env.NETLIFY === "true" && !/^https?:\/\//i.test(env.VITE_API_URL || "")) {
     throw new Error(
       "Defina VITE_API_URL nas variáveis do site no Netlify com o endereço da API " +
-        "no Render, terminando em /api (ex.: https://clickhelp-api.onrender.com/api)."
+        "no Render (ex.: https://clickhelp-api.onrender.com/api)."
     );
   }
 

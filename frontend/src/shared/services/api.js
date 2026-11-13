@@ -10,10 +10,20 @@ export const setApiToken = (token) => {
   currentToken = token || null;
 };
 
+/**
+ * Endereço base da API, sempre terminando em "/api". Assim, cadastrar
+ * VITE_API_URL só com o domínio (ex.: https://clickhelp-api.onrender.com)
+ * não faz todas as chamadas darem "Rota não encontrada".
+ */
+export const resolveApiBaseUrl = (value) => {
+  const url = (value || "/api").trim().replace(/\/+$/, "");
+  return url.endsWith("/api") ? url : `${url}/api`;
+};
+
 export const api = axios.create({
   // Padrão "/api": o Vite repassa para o backend (ver vite.config.js).
   // Publicado no Netlify, VITE_API_URL aponta para a API no Render.
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL: resolveApiBaseUrl(import.meta.env.VITE_API_URL),
   // O plano gratuito do Render "dorme" sem uso e leva até ~1 minuto para acordar.
   timeout: 70000,
 });
