@@ -97,7 +97,9 @@ function App() {
           </div>
         ) : null}
         {!session && currentView === "forgot-password" ? (
-          <ForgotPasswordPage onBack={() => setCurrentView("login")} />
+          <div className="login-view-shell">
+            <ForgotPasswordPage onBack={() => setCurrentView("login")} />
+          </div>
         ) : null}
       </main>
     </SettingsProvider>

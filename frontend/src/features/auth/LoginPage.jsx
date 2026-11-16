@@ -1,12 +1,9 @@
 import { useState } from "react";
-import { FaEye, FaEyeSlash, FaLock, FaUser } from "react-icons/fa";
-import BrandName from "../../shared/components/BrandName";
-import { useSettings } from "../settings/useSettings";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { getRememberedLogin, loginUser } from "./authService";
-import "./LoginPage.css";
+import AuthTicket from "./AuthTicket";
 
 const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
-  const { branding } = useSettings();
   const [username, setUsername] = useState(() => getRememberedLogin()?.username ?? "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -43,68 +40,48 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
   };
 
   return (
-    <div className="container-cartaoLogin">
-      <form className="form-login" onSubmit={handleSubmit}>
-        <div className="brand-header">
-          {branding.logoDataUrl ? (
-            <img
-              className="brand-logo"
-              src={branding.logoDataUrl}
-              alt={`Logo ${branding.companyName || branding.appName}`}
-            />
-          ) : (
-            <div className="brand-mark" aria-hidden="true">
-              <span className="brand-mark-core"></span>
-            </div>
-          )}
+    <AuthTicket>
+      <form className="login-body" onSubmit={handleSubmit} noValidate>
+        <h2 className="login-title">Acesse sua conta</h2>
 
-          <div className="brand-copy">
-            <span className="brand-chip">{branding.companyName || "Central de chamados de TI"}</span>
-            <h1>
-              <BrandName name={branding.appName} />
-            </h1>
-            <p>Acesse a plataforma para abrir, acompanhar e resolver chamados com agilidade.</p>
-          </div>
-        </div>
-
-        <label className="input-label" htmlFor="username">
-          NOME DE USUÁRIO
+        <label className="login-label" htmlFor="username">
+          Usuário
         </label>
-        <div className="input-field has-left-icon">
-          <input
-            id="username"
-            type="text"
-            placeholder="nome.sobrenome"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            autoComplete="username"
-            disabled={isSubmitting}
-          />
-          <FaUser className="icon" />
-        </div>
+        <input
+          id="username"
+          className="login-input"
+          type="text"
+          placeholder="nome.sobrenome"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          disabled={isSubmitting}
+        />
 
-        <label className="input-label" htmlFor="password">
-          SENHA
+        <label className="login-label" htmlFor="password">
+          Senha
         </label>
-        <div className="input-field has-left-icon">
+        <div className="login-password">
           <input
             id="password"
+            className="login-input"
             type={showPassword ? "text" : "password"}
             value={password}
-            placeholder="••••••••"
             onChange={(event) => setPassword(event.target.value)}
             autoComplete="current-password"
             disabled={isSubmitting}
           />
-          <FaLock className="icon" />
           <button
             type="button"
-            className="toggle-password"
+            className="login-toggle-password"
             onClick={togglePassword}
             aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            aria-pressed={showPassword}
             disabled={isSubmitting}
           >
-            {showPassword ? <FaEye /> : <FaEyeSlash />}
+            {showPassword ? <FaEyeSlash /> : <FaEye />}
           </button>
         </div>
 
@@ -115,7 +92,7 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
         ) : null}
 
         <div className="login-options">
-          <label className="remember-me">
+          <label className="login-remember">
             <input
               type="checkbox"
               checked={rememberMe}
@@ -127,21 +104,21 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
 
           <a
             href="#"
-            className="forgot-password"
+            className="login-forgot"
             onClick={(event) => {
               event.preventDefault();
               onForgotPassword?.();
             }}
           >
-            Esqueceu a senha?
+            Esqueci minha senha
           </a>
         </div>
 
-        <button type="submit" className="submit-button" disabled={isSubmitting}>
+        <button type="submit" className="login-submit" disabled={isSubmitting}>
           {isSubmitting ? "Entrando..." : "Entrar"}
         </button>
       </form>
-    </div>
+    </AuthTicket>
   );
 };
 

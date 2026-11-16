@@ -1,504 +1,400 @@
-.container-cartaoLogin {
-  position: relative;
-  width: 100%;
-  max-width: 520px;
-  min-height: auto;
-  padding: 40px 46px 34px;
-  border-radius: 24px;
-  overflow: hidden;
-  background:
-    radial-gradient(
-      circle at top left,
-      color-mix(in srgb, var(--brand-primary) 22%, transparent),
-      transparent 34%
-    ),
-    radial-gradient(circle at bottom right, rgba(17, 108, 181, 0.28), transparent 32%),
-    linear-gradient(180deg, rgba(8, 20, 39, 0.95), rgba(12, 31, 58, 0.9));
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 18%, transparent);
-  box-shadow:
-    0 28px 80px rgba(2, 9, 22, 0.42),
-    inset 0 1px 0 var(--surface-3);
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: left;
-  box-sizing: border-box;
+/*
+ * Login em forma de chamado impresso.
+ * Canhoto (marca) | linha de corte com dois recortes | corpo (formulário).
+ * No celular o canhoto vai para cima e a linha de corte fica na horizontal.
+ * As cores seguem a marca definida em Configurações (--brand-primary).
+ */
+
+.login-ticket {
+  --ticket-radius: 18px;
+  --notch: 16px;
+  --stub-bg: color-mix(in srgb, var(--brand-primary) 20%, #0a1b31);
+  --body-bg: #0d2140;
+  --tear-line: rgba(255, 255, 255, 0.22);
+  --field-bg: rgba(255, 255, 255, 0.05);
+  --field-border: rgba(255, 255, 255, 0.14);
+
+  width: min(100%, 820px);
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  color: var(--text-strong);
+  /* A sombra fica no conjunto: as máscaras dos recortes cortariam box-shadow. */
+  filter: drop-shadow(0 24px 48px rgba(2, 9, 22, 0.5));
 }
 
-.container-cartaoLogin::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(135deg, var(--surface-3), transparent 42%),
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.02) 0,
-      rgba(255, 255, 255, 0.02) 1px,
-      transparent 1px,
-      transparent 36px
-    );
-  pointer-events: none;
+/* Recortes meia-lua: cada lado da linha de corte perde um semicírculo
+   no topo e outro na base, e juntos eles formam o furo do picote. */
+.login-stub,
+.login-body {
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 
-.container-cartaoLogin::after {
-  content: "";
-  position: absolute;
-  width: 240px;
-  height: 240px;
-  right: -90px;
-  top: -90px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(31, 196, 255, 0.16), transparent 70%);
-  pointer-events: none;
+.login-stub {
+  --notch-x: 100%;
+  -webkit-mask-image:
+    radial-gradient(circle at var(--notch-x) 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at var(--notch-x) 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+  mask-image:
+    radial-gradient(circle at var(--notch-x) 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at var(--notch-x) 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
 }
 
-.form-login {
-  width: min(100%, 360px);
-  position: relative;
-  z-index: 1;
+.login-body {
+  --notch-x: 0;
+  -webkit-mask-image:
+    radial-gradient(circle at var(--notch-x) 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at var(--notch-x) 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+  mask-image:
+    radial-gradient(circle at var(--notch-x) 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at var(--notch-x) 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+}
+
+/* ---------- Canhoto ---------- */
+
+.login-stub {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  justify-content: space-between;
+  gap: 48px;
+  padding: 40px 36px;
+  border-radius: var(--ticket-radius) 0 0 var(--ticket-radius);
+  background: var(--stub-bg);
 }
 
-.brand-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 22px;
-}
-
-.brand-mark {
+.login-mark {
   position: relative;
-  flex: 0 0 62px;
-  width: 62px;
-  height: 62px;
-  border-radius: 18px;
-  background: linear-gradient(160deg, #19c6d0, #1570c8);
-  box-shadow:
-    0 14px 30px color-mix(in srgb, var(--brand-primary) 28%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--brand-gradient);
 }
 
-.brand-mark::before,
-.brand-mark::after {
+.login-mark::before,
+.login-mark::after {
   content: "";
   position: absolute;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.95);
 }
 
-.brand-mark::before {
-  width: 28px;
-  height: 8px;
-  left: 17px;
-  top: 27px;
+.login-mark::before {
+  width: 22px;
+  height: 6px;
+  left: 13px;
+  top: 21px;
 }
 
-.brand-mark::after {
-  width: 8px;
-  height: 28px;
-  left: 27px;
-  top: 17px;
+.login-mark::after {
+  width: 6px;
+  height: 22px;
+  left: 21px;
+  top: 13px;
 }
 
-.brand-mark-core {
+.login-mark-core {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
-  width: 12px;
-  height: 12px;
+  right: 7px;
+  bottom: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.14);
 }
 
-.brand-copy {
+.login-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 6px;
+}
+
+.login-stub-text {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  align-items: center;
-  text-align: center;
 }
 
-.brand-chip {
-  width: fit-content;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--brand-primary) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
-  color: var(--brand-light);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.container-cartaoLogin h1 {
+.login-wordmark {
   margin: 0;
-  font-size: 32px;
-  line-height: 1;
+  font-family: "Archivo", "Segoe UI", sans-serif;
+  font-stretch: 125%;
+  font-variation-settings: "wdth" 125;
   font-weight: 800;
-  letter-spacing: -0.03em;
-  color: #f7fbff;
+  font-size: clamp(30px, 4.4vw, 42px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  overflow-wrap: break-word;
 }
 
-.container-cartaoLogin h1 span {
-  color: #58d7ff;
+.login-wordmark span {
+  color: var(--brand-light);
 }
 
-.container-cartaoLogin p {
-  font-size: 13px;
+.login-company {
+  margin: 10px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.login-purpose {
+  margin: 20px 0 0;
+  max-width: 28ch;
+  font-size: 14px;
   line-height: 1.55;
-  font-weight: 400;
-  color: rgba(227, 242, 255, 0.76);
-  margin: 0;
+  color: var(--text-muted);
 }
 
-.input-label {
-  width: 100%;
-  text-align: left;
-  font-size: 10px;
+/* ---------- Corpo (formulário ou mensagem) ---------- */
+
+.login-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px 44px 36px;
+  border-radius: 0 var(--ticket-radius) var(--ticket-radius) 0;
+  border-left: 2px dashed var(--tear-line);
+  background: var(--body-bg);
+}
+
+.login-title {
+  margin: 0 0 24px;
+  font-size: 20px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  color: rgba(217, 235, 255, 0.92);
-  margin: 4px 0 8px;
+  line-height: 1.25;
 }
 
-.input-field {
-  position: relative;
-  width: 100%;
-  margin-bottom: 16px;
+.login-label {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
 }
 
-.container-cartaoLogin input[type="text"],
-.container-cartaoLogin input[type="password"] {
+.login-input {
   width: 100%;
-  height: 48px;
-  padding: 0 46px 0 42px;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 18%, transparent);
-  background: var(--surface-2);
+  height: 46px;
+  margin: 0 0 18px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--field-border);
+  background: var(--field-bg);
   color: var(--text-strong);
+  font-size: 15px;
   outline: none;
-  margin: 0;
-  text-align: left;
-  font-size: 13px;
-  transition: all 0.25s ease;
-  box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-.container-cartaoLogin input[type="text"]::placeholder,
-.container-cartaoLogin input[type="password"]::placeholder {
-  color: rgba(210, 230, 248, 0.35);
+.login-input::placeholder {
+  color: var(--text-placeholder);
 }
 
-.container-cartaoLogin input[type="text"]:focus,
-.container-cartaoLogin input[type="password"]:focus {
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 42%, transparent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-primary) 12%, transparent);
-  background: var(--surface-3);
+.login-input:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 22%, transparent);
 }
 
-.container-cartaoLogin .icon {
+.login-input:disabled {
+  opacity: 0.7;
+}
+
+.login-password {
+  position: relative;
+}
+
+.login-password .login-input {
+  padding-right: 48px;
+}
+
+.login-toggle-password {
   position: absolute;
-  left: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: rgba(186, 219, 244, 0.52);
-  font-size: 13px;
-  pointer-events: none;
-}
-
-.toggle-password {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: rgba(216, 235, 247, 0.72);
-  z-index: 2;
-  font-size: 13px;
+  right: 5px;
+  top: 5px;
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   background: transparent;
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
 }
 
-.toggle-password:hover {
-  background: var(--surface-2);
+.login-toggle-password:hover {
+  background: var(--surface-3);
+  color: var(--text-strong);
 }
 
-.toggle-password:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+.login-text {
+  margin: -8px 0 28px;
+  max-width: 40ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.login-feedback {
+  margin: -4px 0 18px;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .login-options {
-  width: 100%;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  margin: 2px 0 22px;
+  gap: 10px 16px;
+  margin: 0 0 24px;
 }
 
-.remember-me {
-  display: flex;
+.login-remember {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
-  color: rgba(228, 238, 248, 0.78);
+  font-size: 14px;
+  color: var(--text);
   cursor: pointer;
-  line-height: 1;
 }
 
-.remember-me input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  accent-color: #23b8e8;
+.login-remember input {
+  width: 16px;
+  height: 16px;
   margin: 0;
+  accent-color: var(--brand-primary);
 }
 
-.remember-me span {
-  color: inherit;
+.login-forgot {
+  font-size: 14px;
+  color: var(--brand-light);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
 }
 
-.forgot-password {
-  font-size: 11px;
-  color: #8fdfff;
-  text-decoration: none;
-  transition: 0.2s ease;
-  white-space: nowrap;
+.login-forgot:hover {
+  text-decoration-color: currentColor;
 }
 
-.forgot-password:hover {
-  color: #c4f2ff;
+.login-remember input:focus-visible,
+.login-forgot:focus-visible {
+  outline: 2px solid var(--brand-light);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
-.submit-button {
+.login-submit {
   width: 100%;
   height: 48px;
   border: none;
-  border-radius: 14px;
+  border-radius: 10px;
   background: var(--brand-gradient);
-  color: white;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.28s ease;
-  margin-top: 2px;
-  box-shadow:
-    0 18px 36px color-mix(in srgb, var(--brand-primary) 34%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.submit-button:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 22px 42px color-mix(in srgb, var(--brand-primary) 40%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+.login-submit:hover:not(:disabled) {
+  filter: brightness(1.08);
 }
 
-.submit-button:disabled {
+.login-submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.login-submit:disabled {
   cursor: wait;
-  opacity: 0.85;
-  transform: none;
 }
 
-.login-hint {
-  margin-top: 14px;
-  color: rgba(227, 242, 255, 0.64);
-  font-size: 11px;
-  line-height: 1.5;
-  text-align: center;
-}
+/* ---------- Celular: canhoto em cima, corte na horizontal ---------- */
 
-.login-hint strong {
-  color: #dff6ff;
-}
-
-/* ---------- Responsivo ---------- */
-
-@media (max-width: 768px) {
-  .container-cartaoLogin {
-    width: min(92vw, 520px);
-    max-width: 520px;
-    padding: 34px 26px 30px;
-    border-radius: 22px;
+@media (max-width: 720px) {
+  .login-ticket {
+    --notch: 13px;
+    width: min(100%, 440px);
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .form-login {
-    width: 100%;
-    max-width: 100%;
+  .login-stub {
+    -webkit-mask-image:
+      radial-gradient(circle at 0 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+      radial-gradient(circle at 100% 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+    mask-image:
+      radial-gradient(circle at 0 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+      radial-gradient(circle at 100% 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    padding: 24px 24px 22px;
+    border-radius: var(--ticket-radius) var(--ticket-radius) 0 0;
   }
 
-  .brand-header {
-    gap: 14px;
-    margin-bottom: 20px;
+  .login-body {
+    -webkit-mask-image:
+      radial-gradient(circle at 0 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+      radial-gradient(circle at 100% 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+    mask-image:
+      radial-gradient(circle at 0 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+      radial-gradient(circle at 100% 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+    padding: 26px 24px 28px;
+    border-left: none;
+    border-top: 2px dashed var(--tear-line);
+    border-radius: 0 0 var(--ticket-radius) var(--ticket-radius);
   }
 
-  .brand-mark {
-    width: 58px;
-    height: 58px;
+  .login-mark,
+  .login-logo {
+    flex: 0 0 auto;
   }
 
-  .container-cartaoLogin h1 {
+  .login-wordmark {
     font-size: 28px;
   }
 
-  .container-cartaoLogin p {
-    font-size: 12px;
+  .login-company {
+    margin-top: 6px;
+    font-size: 14px;
   }
 
-  .container-cartaoLogin input[type="text"],
-  .container-cartaoLogin input[type="password"],
-  .submit-button {
-    height: 46px;
-  }
-}
-
-@media (max-width: 480px) {
-  .container-cartaoLogin {
-    width: min(94vw, 420px);
-    max-width: 420px;
-    padding: 26px 18px 24px;
-    border-radius: 18px;
-  }
-
-  .brand-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 18px;
-  }
-
-  .brand-mark {
-    width: 54px;
-    height: 54px;
-    border-radius: 16px;
-  }
-
-  .brand-mark::before {
-    width: 24px;
-    left: 15px;
-    top: 23px;
-  }
-
-  .brand-mark::after {
-    height: 24px;
-    left: 23px;
-    top: 15px;
-  }
-
-  .container-cartaoLogin h1 {
-    font-size: 25px;
-  }
-
-  .brand-chip {
-    font-size: 9px;
-  }
-
-  .container-cartaoLogin p {
-    font-size: 11px;
-  }
-
-  .input-label {
-    font-size: 9px;
-  }
-
-  .input-field {
-    margin-bottom: 13px;
-  }
-
-  .container-cartaoLogin input[type="text"],
-  .container-cartaoLogin input[type="password"] {
-    height: 42px;
-    font-size: 12px;
-    padding: 0 42px 0 38px;
-    border-radius: 12px;
-  }
-
-  .container-cartaoLogin .icon {
-    left: 13px;
-    font-size: 12px;
-  }
-
-  .toggle-password {
-    width: 34px;
-    height: 34px;
-  }
-
-  .login-options {
-    margin-bottom: 18px;
-  }
-
-  .remember-me,
-  .forgot-password {
-    font-size: 10px;
-  }
-
-  .submit-button {
-    height: 42px;
+  .login-purpose {
+    margin-top: 6px;
     font-size: 13px;
-    border-radius: 12px;
+  }
+
+  .login-title {
+    margin-bottom: 20px;
+    font-size: 18px;
   }
 }
 
 @media (max-width: 360px) {
-  .container-cartaoLogin {
-    width: 95vw;
-    max-width: 95vw;
-    padding: 22px 14px 20px;
-    border-radius: 16px;
+  .login-stub,
+  .login-body {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 
-  .container-cartaoLogin h1 {
-    font-size: 22px;
-  }
-
-  .container-cartaoLogin p {
-    font-size: 10px;
-  }
-
-  .login-options {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .container-cartaoLogin input[type="text"],
-  .container-cartaoLogin input[type="password"] {
-    height: 40px;
-    font-size: 11px;
-  }
-
-  .submit-button {
-    height: 40px;
-    font-size: 12px;
+  .login-wordmark {
+    font-size: 24px;
   }
 }
 
-.login-feedback {
-  margin: -2px 0 16px;
-  font-size: 12px;
-  line-height: 1.5;
-}
+@media (prefers-reduced-motion: reduce) {
+  .login-input,
+  .login-submit {
+    transition: none;
+  }
 
-.brand-logo {
-  width: 62px;
-  height: 62px;
-  flex: 0 0 62px;
-  object-fit: contain;
-  border-radius: 18px;
-  background: var(--surface-2);
-  padding: 6px;
+  .login-submit:active:not(:disabled) {
+    transform: none;
+  }
 }

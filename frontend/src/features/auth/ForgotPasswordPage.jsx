@@ -1,20 +1,19 @@
-import "./ForgotPasswordPage.css";
+import AuthTicket from "./AuthTicket";
 
 function ForgotPasswordPage({ onBack }) {
   return (
-    <section className="forgot-password-card">
-      <div className="forgot-password-mark" aria-hidden="true">
-        <span className="forgot-password-mark-core"></span>
-      </div>
+    <AuthTicket>
+      <section className="login-body">
+        <h2 className="login-title">Esqueceu a senha?</h2>
+        <p className="login-text">
+          Peça à equipe de TI para redefinir sua senha. Depois, entre com a senha nova.
+        </p>
 
-      <span className="forgot-password-chip">Suporte de acesso</span>
-      <h1>Esqueceu a senha?</h1>
-      <p>Entre em contato com a Equipe de TI para que sua senha seja redefinida.</p>
-
-      <button type="button" className="forgot-password-action" onClick={onBack}>
-        Voltar para o login
-      </button>
-    </section>
+        <button type="button" className="login-submit" onClick={onBack}>
+          Voltar para o login
+        </button>
+      </section>
+    </AuthTicket>
   );
 }
 
