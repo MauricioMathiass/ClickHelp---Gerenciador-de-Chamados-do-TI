@@ -18,6 +18,7 @@ function Modal({
   size = "default",
   centerTitle = false,
   hideCloseButton = false,
+  className = "",
 }) {
   const modalId = useId();
   const titleId = `${modalId}-title`;
@@ -80,7 +81,7 @@ function Modal({
     >
       <div
         ref={cardRef}
-        className={`modal-card modal-size-${size}`}
+        className={`modal-card modal-size-${size} ${className}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

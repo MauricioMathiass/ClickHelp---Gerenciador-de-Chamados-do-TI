@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { FaBell } from "react-icons/fa";
-import { FaArrowRightFromBracket } from "react-icons/fa6";
+import { FaChartLine, FaClockRotateLeft, FaGear, FaHeadset, FaInbox, FaUsers } from "react-icons/fa6";
 import Feedback from "../../shared/components/Feedback";
 import { getApiErrorMessage } from "../../shared/services/api";
 import NotificationsModal from "../notifications/NotificationsModal";
@@ -110,58 +109,56 @@ function HomePage({ onBack, session }) {
 
   return (
     <section className="home">
-      <button type="button" className="home-logout" onClick={onBack}>
-        <FaArrowRightFromBracket />
-        <span>Sair</span>
-      </button>
+      <HomeHeader
+        user={user}
+        unreadCount={unreadCount}
+        onOpenNotifications={open(MODALS.NOTIFICATIONS)}
+        onLogout={onBack}
+      />
 
-      <div className="home-panel">
-        <HomeHeader
-          user={user}
-          isAdmin={isAdmin}
-          onOpenUsers={open(MODALS.USERS)}
-          onOpenSettings={open(MODALS.SETTINGS)}
-        />
-
-        <nav className="home-actions" aria-label="Ações">
-          {canViewTiPanel ? (
-            <button type="button" className="btn btn-primary btn-lg" onClick={open(MODALS.TI_PANEL)}>
-              Painel TI
-            </button>
-          ) : null}
-
-          <button type="button" className="btn btn-primary btn-lg" onClick={open(MODALS.MY_TICKETS)}>
-            Solicitações
+      <nav className="home-nav" aria-label="Menu principal">
+        <div className="home-nav-group">
+          <button type="button" className="home-nav-item" onClick={open(MODALS.MY_TICKETS)}>
+            <FaInbox aria-hidden="true" />
+            Minhas solicitações
           </button>
 
-          <div className="home-actions-tools">
-            <button
-              type="button"
-              className="notification-bell"
-              onClick={open(MODALS.NOTIFICATIONS)}
-              aria-label="Abrir notificações"
-              title="Notificações"
-            >
-              <FaBell />
-              {unreadCount ? (
-                <span className="notification-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
-              ) : null}
-            </button>
-
-            {isAdmin ? (
-              <button type="button" className="btn btn-primary btn-lg" onClick={open(MODALS.SLA)}>
-                SLA
+          {canViewTiPanel ? (
+            <>
+              <button type="button" className="home-nav-item" onClick={open(MODALS.TI_PANEL)}>
+                <FaHeadset aria-hidden="true" />
+                Painel TI
               </button>
-            ) : null}
-
-            {canViewTiPanel ? (
-              <button type="button" className="btn btn-primary btn-lg" onClick={open(MODALS.HISTORY)}>
+              <button type="button" className="home-nav-item" onClick={open(MODALS.HISTORY)}>
+                <FaClockRotateLeft aria-hidden="true" />
                 Histórico
               </button>
-            ) : null}
-          </div>
-        </nav>
+            </>
+          ) : null}
 
+          {isAdmin ? (
+            <button type="button" className="home-nav-item" onClick={open(MODALS.SLA)}>
+              <FaChartLine aria-hidden="true" />
+              Relatório de SLA
+            </button>
+          ) : null}
+        </div>
+
+        {isAdmin ? (
+          <div className="home-nav-group" aria-label="Administração" role="group">
+            <button type="button" className="home-nav-item" onClick={open(MODALS.USERS)}>
+              <FaUsers aria-hidden="true" />
+              Usuários
+            </button>
+            <button type="button" className="home-nav-item" onClick={open(MODALS.SETTINGS)}>
+              <FaGear aria-hidden="true" />
+              Configurações
+            </button>
+          </div>
+        ) : null}
+      </nav>
+
+      <div className="home-main">
         <Feedback className="home-load-error">{loadError}</Feedback>
 
         <TicketForm username={username} onSubmit={handleCreateTicket} />

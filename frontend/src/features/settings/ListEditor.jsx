@@ -58,7 +58,7 @@ function ListEditor({
             }
           }}
         />
-        <button type="button" className="btn btn-primary" onClick={add}>
+        <button type="button" className="btn btn-ghost" onClick={add}>
           Adicionar
         </button>
       </div>

@@ -1,27 +1,144 @@
-/* Tela de Configurações (empresa, cadastros, SLA, feriados e rotinas). */
+/*
+ * Configurações: menu lateral com as seções, painel rolável à direita e
+ * barra fixa embaixo com o aviso de alterações e o botão Salvar.
+ */
 
-.settings-tabs {
-  display: flex;
-  flex-wrap: wrap;
+/* ---------- Janela ---------- */
+
+.modal-card.settings-modal {
+  width: min(100%, 1040px);
+  height: min(88vh, 760px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--border-subtle);
+  background: #0d2140;
 }
+
+.settings-modal .modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-modal .modal-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.settings-modal .modal-content {
+  min-height: 0;
+  padding: 0;
+}
+
+.settings-modal .modal-actions {
+  padding: 14px 24px;
+  border-top: 1px solid var(--border-subtle);
+  background: #0b1c37;
+}
+
+/* ---------- Menu lateral + painel ---------- */
+
+.settings-layout {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 12px;
+  border-right: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--brand-primary) 6%, #0b1c37);
+}
+
+.settings-nav-item {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.settings-nav-item:hover {
+  background: var(--surface-2);
+}
+
+/* Barra à esquerda marca a seção aberta. */
+.settings-nav-item.is-active {
+  background: var(--surface-3);
+  color: var(--text-strong);
+}
+
+.settings-nav-item.is-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--brand-primary);
+}
+
+.settings-nav-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.settings-nav-hint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.settings-panel {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 28px 32px;
+}
+
+.settings-panel-title {
+  margin: 0 0 20px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* ---------- Conteúdo das seções ---------- */
 
 .settings-stack {
   display: grid;
-  gap: 18px;
 }
 
+/* Seções separadas por uma linha, sem caixas umas dentro das outras. */
 .settings-section {
   display: grid;
   gap: 12px;
-  padding: 18px;
-  border-radius: var(--radius-lg);
-  background: var(--surface-1);
-  border: 1px solid var(--border-subtle);
+  padding: 20px 0;
+  border-top: 1px solid var(--border-subtle);
 }
 
-.settings-section h3 {
+.settings-section:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.settings-section h4 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.settings-section h4 + .field-hint {
+  margin-top: -6px;
 }
 
 .settings-grid {
@@ -34,69 +151,193 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Campos sóbrios, como no formulário de nova solicitação. */
+.settings-modal .field {
+  gap: 6px;
+}
+
+.settings-modal .field-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+}
+
+.settings-modal .input {
+  height: 44px;
+  border-radius: 10px;
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.settings-modal .input:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 22%, transparent);
+}
+
+.settings-modal .btn {
+  border-radius: 10px;
+}
+
+.settings-modal .btn-primary {
+  box-shadow: none;
+}
+
+.settings-modal .btn-primary:hover {
+  transform: none;
+}
+
+/* ---------- Barra de baixo ---------- */
+
 .settings-actions {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
   width: 100%;
 }
 
-.settings-actions .feedback {
-  flex: 1 1 260px;
+.settings-actions .feedback,
+.settings-status {
+  flex: 1 1 auto;
+  margin: 0;
   text-align: left;
 }
 
-/* Cores e logo */
+.settings-actions .feedback {
+  padding: 8px 12px;
+}
+
+.settings-status {
+  font-size: 13px;
+  color: var(--color-warning);
+}
+
+/* ---------- Empresa: campos + prévia ---------- */
+
+.settings-branding {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: 32px;
+  align-items: start;
+}
+
+.settings-branding-fields {
+  display: grid;
+  gap: 20px;
+}
 
 .color-row,
 .logo-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 12px 20px;
 }
 
 .color-field {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: var(--text-muted);
-  font-size: 13px;
+  gap: 10px;
+  color: var(--text);
+  font-size: 14px;
   cursor: pointer;
 }
 
 .color-field input {
-  width: 46px;
-  height: 46px;
-  padding: 4px;
-  border: 1px solid var(--border-field);
-  border-radius: 12px;
-  background: var(--surface-2);
+  width: 44px;
+  height: 44px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
   cursor: pointer;
 }
 
-.color-preview {
-  display: inline-flex;
-  align-items: center;
-  height: 42px;
-  padding: 0 16px;
-  border-radius: 12px;
-  color: var(--text-strong);
-  font-weight: 700;
+.color-field input:focus-visible {
+  outline: 2px solid var(--brand-light);
+  outline-offset: 2px;
 }
 
 .logo-preview {
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   object-fit: contain;
-  padding: 8px;
-  border-radius: 16px;
-  background: var(--surface-2);
+  padding: 6px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
 }
 
-/* Listas editáveis */
+/* Miniatura da tela de login (usa o formato de shared/styles/paper-ticket.css). */
+.brand-preview {
+  position: sticky;
+  top: 0;
+  margin: 0;
+}
+
+.brand-preview figcaption {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.paper-ticket.brand-preview-ticket {
+  --ticket-radius: 14px;
+  --notch: 10px;
+  --body-bg: #102a4f;
+  filter: drop-shadow(0 14px 28px rgba(2, 9, 22, 0.45));
+}
+
+.brand-preview-stub {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+}
+
+.brand-preview-stub .brand-mark,
+.brand-preview-stub .brand-logo {
+  --mark-size: 36px;
+}
+
+.brand-preview-name {
+  font-size: 20px;
+}
+
+.brand-preview-company {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.brand-preview-body {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+}
+
+.brand-preview-field {
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.brand-preview-button {
+  height: 32px;
+  display: grid;
+  place-items: center;
+  margin-top: 4px;
+  border-radius: 7px;
+  background: var(--brand-gradient);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---------- Listas editáveis ---------- */
 
 .list-editor {
   display: grid;
@@ -109,6 +350,10 @@
   gap: 10px;
 }
 
+.list-editor-add .btn {
+  height: 44px;
+}
+
 .list-editor-error {
   color: var(--color-danger-text);
 }
@@ -116,7 +361,7 @@
 .list-editor-items {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -125,30 +370,32 @@
 .list-editor-items li {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 6px 6px 12px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--brand-primary) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 26%, transparent);
-  font-size: 13px;
+  gap: 4px;
+  padding: 4px 4px 4px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 14px;
 }
 
 .list-editor-remove {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border: none;
-  border-radius: 999px;
-  background: var(--surface-3);
-  color: var(--text-strong);
-  cursor: pointer;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
   line-height: 1;
+  cursor: pointer;
 }
 
 .list-editor-remove:hover {
-  background: color-mix(in srgb, var(--color-danger) 30%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 24%, transparent);
+  color: var(--color-danger-text);
 }
 
-/* Dias da semana e caixas de seleção */
+/* ---------- Dias da semana e caixas de seleção ---------- */
 
 .weekday-picker {
   display: flex;
@@ -159,41 +406,128 @@
 .weekday-picker button {
   min-width: 52px;
   height: 38px;
-  border: 1px solid var(--border-field);
-  border-radius: 10px;
-  background: var(--surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-muted);
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .weekday-picker button.is-active {
-  background: var(--brand-gradient);
-  border-color: transparent;
+  border-color: var(--brand-primary);
+  background: color-mix(in srgb, var(--brand-primary) 22%, transparent);
   color: var(--text-strong);
 }
 
 .check-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   color: var(--text);
+  line-height: 1.45;
   cursor: pointer;
 }
 
 .check-row input {
+  flex: 0 0 auto;
   width: 18px;
   height: 18px;
+  margin: 1px 0 0;
   accent-color: var(--brand-primary);
 }
 
-@media (max-width: 768px) {
+.check-row input:focus-visible {
+  outline: 2px solid var(--brand-light);
+  outline-offset: 2px;
+}
+
+/* ---------- Responsivo ---------- */
+
+@media (max-width: 900px) {
+  .settings-branding {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .brand-preview {
+    position: static;
+    max-width: 360px;
+  }
+}
+
+@media (max-width: 720px) {
+  .modal-card.settings-modal {
+    height: min(92vh, 760px);
+  }
+
+  .settings-modal .modal-header,
+  .settings-modal .modal-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* O menu lateral vira uma faixa rolável no topo. */
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .settings-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 8px 12px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+    scrollbar-width: none;
+  }
+
+  .settings-nav-item {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+  }
+
+  .settings-nav-hint {
+    display: none;
+  }
+
+  .settings-nav-item.is-active::before {
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: 2px;
+    width: auto;
+    height: 3px;
+  }
+
+  .settings-panel {
+    padding: 20px 16px 24px;
+  }
+
   .settings-grid,
   .settings-grid-3 {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .list-editor-add {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Aviso numa linha e o botão Salvar ocupando a largura toda embaixo. */
+  .settings-actions {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .settings-actions .feedback,
+  .settings-status {
+    flex-basis: 100%;
+  }
+
+  .settings-status:empty {
+    display: none;
+  }
+
+  .settings-actions .btn {
+    flex: 1 1 auto;
   }
 }

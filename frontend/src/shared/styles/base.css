@@ -92,6 +92,8 @@ td,
   padding: 24px;
   position: relative;
   display: grid;
+  /* Coluna limitada à tela: um filho largo (menu que rola) não alarga a página. */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
 }
 

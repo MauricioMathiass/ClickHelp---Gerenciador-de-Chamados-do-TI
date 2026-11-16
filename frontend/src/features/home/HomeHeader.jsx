@@ -1,49 +1,50 @@
+import { FaArrowRightFromBracket, FaBell } from "react-icons/fa6";
+import BrandMark from "../../shared/components/BrandMark";
+import BrandName from "../../shared/components/BrandName";
 import { useSettings } from "../settings/useSettings";
 
-/** Marca da empresa (logo, nome do sistema e da empresa) e cartão do usuário logado. */
-function HomeHeader({ user, isAdmin, onOpenUsers, onOpenSettings }) {
+/** Barra do topo: marca da empresa, notificações, usuário conectado e Sair. */
+function HomeHeader({ user, unreadCount, onOpenNotifications, onLogout }) {
   const { branding } = useSettings();
+  const roleLine = [user?.role, user?.department].filter(Boolean).join(", ");
 
   return (
-    <header className="home-header">
+    <header className="home-top">
       <div className="home-brand">
-        {branding.logoDataUrl ? (
-          <img
-            className="home-brand-logo"
-            src={branding.logoDataUrl}
-            alt={`Logo ${branding.companyName || branding.appName}`}
-          />
-        ) : null}
-
-        <div>
-          <h1>{branding.appName}</h1>
-          {branding.companyName ? <p className="home-brand-company">{branding.companyName}</p> : null}
-          <p className="home-brand-tagline">
-            Centralize solicitações, acompanhe o andamento e mantenha o suporte de TI organizado.
+        <BrandMark size={36} />
+        <div className="home-brand-text">
+          <p className="brand-wordmark home-wordmark">
+            <BrandName name={branding.appName} />
           </p>
+          {branding.companyName ? <p className="home-company">{branding.companyName}</p> : null}
         </div>
       </div>
 
-      <div className="home-user">
-        <div className="home-user-card surface-card">
-          <span>Conectado como</span>
+      <div className="home-session">
+        <button
+          type="button"
+          className="home-bell"
+          onClick={onOpenNotifications}
+          aria-label={unreadCount ? `Notificações: ${unreadCount} não lidas` : "Notificações"}
+          title="Notificações"
+        >
+          <FaBell />
+          {unreadCount ? (
+            <span className="home-bell-badge" aria-hidden="true">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          ) : null}
+        </button>
+
+        <div className="home-user">
           <strong>{user?.name ?? "Usuário"}</strong>
-          <small>
-            {user?.role}
-            {user?.department ? ` · ${user.department}` : ""}
-          </small>
+          {roleLine ? <span>{roleLine}</span> : null}
         </div>
 
-        {isAdmin ? (
-          <div className="home-admin-actions">
-            <button type="button" className="btn btn-primary btn-lg" onClick={onOpenUsers}>
-              Usuários
-            </button>
-            <button type="button" className="btn btn-ghost btn-lg" onClick={onOpenSettings}>
-              Configurações
-            </button>
-          </div>
-        ) : null}
+        <button type="button" className="home-logout" onClick={onLogout}>
+          <FaArrowRightFromBracket aria-hidden="true" />
+          <span>Sair</span>
+        </button>
       </div>
     </header>
   );

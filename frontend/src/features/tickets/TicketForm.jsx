@@ -19,7 +19,7 @@ const toOptions = (items, placeholder) => [
 ];
 
 /**
- * Formulário "Cadastrar solicitação". Locais e categorias vêm das
+ * Formulário de nova solicitação, no formato de chamado impresso. Locais e categorias vêm das
  * Configurações da empresa. `onSubmit` devolve uma mensagem de erro ou null.
  */
 function TicketForm({ username, onSubmit }) {
@@ -71,122 +71,129 @@ function TicketForm({ username, onSubmit }) {
   };
 
   return (
-    <form className="ticket-form surface-card" onSubmit={handleSubmit}>
-      <div className="ticket-form-title">
-        <h2>Cadastrar solicitação</h2>
-        <p>Abra um novo chamado para a equipe de tecnologia.</p>
-      </div>
-
-      {loadError && !isLoaded ? (
-        <div className="feedback feedback-error" role="alert">
-          {loadError} Sem elas não dá para escolher local e categoria.{" "}
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={retryLoadSettings}
-            disabled={isRetrying}
-          >
-            {isRetrying ? "Carregando..." : "Tentar de novo"}
-          </button>
-        </div>
-      ) : null}
-
-      <div className="ticket-form-grid">
-        <div className="field">
-          <label className="field-label" htmlFor="ticket-assunto">
-            Assunto
-          </label>
-          <input
-            id="ticket-assunto"
-            className="input"
-            type="text"
-            value={form.assunto}
-            maxLength={150}
-            onChange={setField("assunto")}
-            placeholder="Ex.: impressora sem conexão"
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor="ticket-solicitante">
-            Solicitante
-          </label>
-          <input id="ticket-solicitante" className="input" type="text" value={username} readOnly />
-        </div>
-
-        <div className="field">
-          <label className="field-label" htmlFor="ticket-local">
-            Local
-          </label>
-          <Select
-            id="ticket-local"
-            className="form-select"
-            name="local"
-            value={form.local}
-            onChange={setField("local")}
-            options={toOptions(catalog.locations, "Selecione um local")}
-          />
-          {isLoaded && !catalog.locations.length ? (
-            <p className="field-hint">
-              Nenhum local cadastrado. O administrador cadastra em Configurações → Cadastros.
+    <div className="paper-ticket-frame">
+      <form className="paper-ticket request-ticket" onSubmit={handleSubmit} noValidate>
+        <div className="paper-ticket-stub request-stub">
+          <div>
+            <h1 className="request-title">Nova solicitação</h1>
+            <p className="request-intro">
+              Conte o que aconteceu. A equipe de TI responde por aqui, e você acompanha em Minhas
+              solicitações.
             </p>
-          ) : null}
+          </div>
+
+          <dl className="request-meta">
+            <dt>Solicitante</dt>
+            <dd>{username}</dd>
+          </dl>
         </div>
 
-        {hasCategories ? (
+        <div className="paper-ticket-body request-body">
+          {loadError && !isLoaded ? (
+            <div className="feedback feedback-error request-load-error" role="alert">
+              {loadError} Sem elas não dá para escolher local e categoria.{" "}
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={retryLoadSettings}
+                disabled={isRetrying}
+              >
+                {isRetrying ? "Carregando..." : "Tentar de novo"}
+              </button>
+            </div>
+          ) : null}
+
           <div className="field">
-            <label className="field-label" htmlFor="ticket-categoria">
-              Categoria
+            <label className="field-label" htmlFor="ticket-assunto">
+              Assunto
             </label>
-            <Select
-              id="ticket-categoria"
-              className="form-select"
-              name="categoria"
-              value={form.categoria}
-              onChange={setField("categoria")}
-              options={toOptions(catalog.categories, "Selecione a categoria")}
+            <input
+              id="ticket-assunto"
+              className="input"
+              type="text"
+              value={form.assunto}
+              maxLength={150}
+              onChange={setField("assunto")}
+              placeholder="Ex.: impressora sem conexão"
             />
           </div>
-        ) : null}
 
-        <div className="field">
-          <label className="field-label" htmlFor="ticket-prioridade">
-            Prioridade
-          </label>
-          <Select
-            id="ticket-prioridade"
-            className="form-select"
-            name="prioridade"
-            value={form.prioridade}
-            onChange={setField("prioridade")}
-            options={PRIORIDADE_OPTIONS}
-          />
+          <div className="request-row">
+            <div className="field">
+              <label className="field-label" htmlFor="ticket-local">
+                Local
+              </label>
+              <Select
+                id="ticket-local"
+                className="form-select"
+                name="local"
+                value={form.local}
+                onChange={setField("local")}
+                options={toOptions(catalog.locations, "Selecione um local")}
+              />
+              {isLoaded && !catalog.locations.length ? (
+                <p className="field-hint">
+                  Nenhum local cadastrado. O administrador cadastra em Configurações → Cadastros.
+                </p>
+              ) : null}
+            </div>
+
+            {hasCategories ? (
+              <div className="field">
+                <label className="field-label" htmlFor="ticket-categoria">
+                  Categoria
+                </label>
+                <Select
+                  id="ticket-categoria"
+                  className="form-select"
+                  name="categoria"
+                  value={form.categoria}
+                  onChange={setField("categoria")}
+                  options={toOptions(catalog.categories, "Selecione a categoria")}
+                />
+              </div>
+            ) : null}
+
+            <div className="field">
+              <label className="field-label" htmlFor="ticket-prioridade">
+                Prioridade
+              </label>
+              <Select
+                id="ticket-prioridade"
+                className="form-select"
+                name="prioridade"
+                value={form.prioridade}
+                onChange={setField("prioridade")}
+                options={PRIORIDADE_OPTIONS}
+              />
+            </div>
+          </div>
+
+          <div className="field">
+            <label className="field-label" htmlFor="ticket-problema">
+              Descreva o problema
+            </label>
+            <textarea
+              id="ticket-problema"
+              className="input"
+              rows="5"
+              value={form.problema}
+              maxLength={5000}
+              onChange={setField("problema")}
+              placeholder="O que aconteceu, desde quando e o que você já tentou."
+            />
+          </div>
+
+          <Feedback type={feedback.type}>{feedback.text}</Feedback>
+
+          <div className="request-actions">
+            <button type="submit" className="request-submit" disabled={isSending}>
+              {isSending ? "Enviando..." : "Enviar solicitação"}
+            </button>
+          </div>
         </div>
-
-        <div className="field ticket-form-full">
-          <label className="field-label" htmlFor="ticket-problema">
-            Descreva o problema
-          </label>
-          <textarea
-            id="ticket-problema"
-            className="input"
-            rows="5"
-            value={form.problema}
-            maxLength={5000}
-            onChange={setField("problema")}
-            placeholder="Conte com detalhes o que está acontecendo."
-          />
-        </div>
-      </div>
-
-      <Feedback type={feedback.type}>{feedback.text}</Feedback>
-
-      <div className="ticket-form-actions">
-        <button type="submit" className="btn btn-primary btn-lg" disabled={isSending}>
-          {isSending ? "Enviando..." : "Enviar solicitação"}
-        </button>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }
 

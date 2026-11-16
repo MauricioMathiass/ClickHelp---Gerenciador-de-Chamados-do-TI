@@ -1,0 +1,108 @@
+/*
+ * Chamado impresso: canhoto | linha de corte com dois recortes | corpo.
+ * Usado no login e no formulário de nova solicitação.
+ *
+ *   <div class="paper-ticket-frame">      ← mede a largura disponível
+ *     <div class="paper-ticket">
+ *       <div class="paper-ticket-stub">…</div>
+ *       <div class="paper-ticket-body">…</div>
+ *
+ * Quando o espaço fica estreito (celular), o canhoto vai para cima e a linha
+ * de corte fica na horizontal. A decisão é pela largura do próprio chamado,
+ * não da tela, por isso o mesmo componente serve para larguras diferentes.
+ */
+
+.paper-ticket-frame {
+  container: paper-ticket / inline-size;
+  width: 100%;
+}
+
+.paper-ticket {
+  --ticket-radius: 18px;
+  --notch: 16px;
+  --stub-size: minmax(0, 5fr);
+  --body-size: minmax(0, 6fr);
+  --stub-bg: color-mix(in srgb, var(--brand-primary) 20%, #0a1b31);
+  --body-bg: #0d2140;
+  --tear-line: rgba(255, 255, 255, 0.22);
+
+  display: grid;
+  grid-template-columns: var(--stub-size) var(--body-size);
+  color: var(--text-strong);
+  /* A sombra fica no conjunto: as máscaras dos recortes cortariam box-shadow. */
+  filter: drop-shadow(0 24px 48px rgba(2, 9, 22, 0.5));
+}
+
+/*
+ * O papel (fundo, linha de corte e recortes) é desenhado num ::before atrás
+ * do conteúdo. Assim a máscara dos recortes não corta o que passa da borda,
+ * como a lista aberta de um seletor.
+ */
+.paper-ticket-stub,
+.paper-ticket-body {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  /* Centro dos dois semicírculos que formam o furo do picote. */
+  --notch-a: var(--notch-x) 0;
+  --notch-b: var(--notch-x) 100%;
+}
+
+.paper-ticket-stub::before,
+.paper-ticket-body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--paper-radius);
+  background: var(--paper-bg);
+  -webkit-mask-image:
+    radial-gradient(circle at var(--notch-a), transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at var(--notch-b), transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+  mask-image:
+    radial-gradient(circle at var(--notch-a), transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
+    radial-gradient(circle at var(--notch-b), transparent var(--notch), #000 calc(var(--notch) + 0.5px));
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  pointer-events: none;
+}
+
+.paper-ticket-stub {
+  --notch-x: 100%;
+  --paper-bg: var(--stub-bg);
+  --paper-radius: var(--ticket-radius) 0 0 var(--ticket-radius);
+}
+
+.paper-ticket-body {
+  --notch-x: 0;
+  --paper-bg: var(--body-bg);
+  --paper-radius: 0 var(--ticket-radius) var(--ticket-radius) 0;
+}
+
+.paper-ticket-body::before {
+  border-left: 2px dashed var(--tear-line);
+}
+
+@container paper-ticket (max-width: 640px) {
+  .paper-ticket {
+    --notch: 13px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .paper-ticket-stub {
+    --notch-a: 0 100%;
+    --notch-b: 100% 100%;
+    --paper-radius: var(--ticket-radius) var(--ticket-radius) 0 0;
+  }
+
+  .paper-ticket-body {
+    --notch-a: 0 0;
+    --notch-b: 100% 0;
+    --paper-radius: 0 0 var(--ticket-radius) var(--ticket-radius);
+  }
+
+  .paper-ticket-body::before {
+    border-left: none;
+    border-top: 2px dashed var(--tear-line);
+  }
+}

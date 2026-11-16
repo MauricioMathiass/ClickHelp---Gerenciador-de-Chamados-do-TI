@@ -1,0 +1,69 @@
+/* Símbolo da marca (cruz com ponto) desenhado proporcionalmente a --mark-size. */
+
+.brand-mark,
+.brand-logo {
+  --mark-size: 48px;
+  flex: 0 0 auto;
+  width: var(--mark-size);
+  height: var(--mark-size);
+}
+
+.brand-mark {
+  position: relative;
+  border-radius: calc(var(--mark-size) * 0.29);
+  background: var(--brand-gradient);
+}
+
+.brand-mark::before,
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  transform: translate(-50%, -50%);
+}
+
+.brand-mark::before {
+  width: 46%;
+  height: 12.5%;
+}
+
+.brand-mark::after {
+  width: 12.5%;
+  height: 46%;
+}
+
+.brand-mark-core {
+  position: absolute;
+  right: 14%;
+  bottom: 14%;
+  width: 19%;
+  height: 19%;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.brand-logo {
+  object-fit: contain;
+  border-radius: calc(var(--mark-size) * 0.22);
+  background: rgba(255, 255, 255, 0.92);
+  padding: calc(var(--mark-size) * 0.1);
+}
+
+/* Nome do sistema em Archivo largo (carregada no index.html). */
+.brand-wordmark {
+  margin: 0;
+  font-family: "Archivo", "Segoe UI", sans-serif;
+  font-stretch: 125%;
+  font-variation-settings: "wdth" 125;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  overflow-wrap: break-word;
+}
+
+.brand-wordmark span {
+  color: var(--brand-light);
+}

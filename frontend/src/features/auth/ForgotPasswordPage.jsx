@@ -3,7 +3,7 @@ import AuthTicket from "./AuthTicket";
 function ForgotPasswordPage({ onBack }) {
   return (
     <AuthTicket>
-      <section className="login-body">
+      <section className="paper-ticket-body login-body">
         <h2 className="login-title">Esqueceu a senha?</h2>
         <p className="login-text">
           Peça à equipe de TI para redefinir sua senha. Depois, entre com a senha nova.

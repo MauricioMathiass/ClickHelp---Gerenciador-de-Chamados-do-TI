@@ -41,7 +41,7 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
 
   return (
     <AuthTicket>
-      <form className="login-body" onSubmit={handleSubmit} noValidate>
+      <form className="paper-ticket-body login-body" onSubmit={handleSubmit} noValidate>
         <h2 className="login-title">Acesse sua conta</h2>
 
         <label className="login-label" htmlFor="username">

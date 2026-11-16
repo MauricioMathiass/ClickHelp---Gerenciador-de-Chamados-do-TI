@@ -1,249 +1,221 @@
-/* Página inicial: cabeçalho, barra de ações e área do formulário. */
+/* Página inicial: barra do topo, menu e o chamado em branco (nova solicitação). */
 
 .home {
-  width: 100%;
-  min-height: 100vh;
-  position: relative;
-}
-
-.home-logout {
-  position: absolute;
-  top: 24px;
-  left: 24px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 18px;
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
-  border-radius: 999px;
-  background: rgba(8, 20, 39, 0.72);
-  color: var(--brand-light);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-  box-shadow:
-    0 16px 32px rgba(2, 9, 22, 0.28),
-    inset 0 1px 0 var(--surface-3);
-}
-
-.home-logout:hover {
-  background: rgba(16, 37, 66, 0.88);
-  transform: translateY(-1px);
-}
-
-.home-logout svg {
-  font-size: 13px;
-  transform: scaleX(-1);
-}
-
-.home-panel {
   width: min(100%, 1160px);
-  margin: 72px auto 0;
-  padding: 0 8px;
+  min-height: calc(100vh - 48px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 
-/* ---------- Cabeçalho ---------- */
+/* ---------- Barra do topo ---------- */
 
-.home-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 20px;
-  align-items: start;
-  margin-bottom: 24px;
+.home-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0 18px;
 }
 
 .home-brand {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 12px;
   min-width: 0;
 }
 
-.home-brand-logo {
-  width: 72px;
-  height: 72px;
-  flex: 0 0 auto;
-  object-fit: contain;
-  border-radius: 18px;
-  background: var(--surface-2);
-  padding: 8px;
+.home-brand-text {
+  min-width: 0;
 }
 
-.home-brand h1 {
-  margin: 0 0 6px;
-  font-size: clamp(34px, 6vw, 58px);
-  line-height: 0.95;
+.home-wordmark {
+  font-size: 22px;
 }
 
-.home-brand-company {
-  margin: 0 0 10px;
-  color: var(--brand-light);
+.home-company {
+  margin: 4px 0 0;
   font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
-.home-brand-tagline {
-  margin: 0;
-  max-width: 720px;
-  color: rgba(227, 242, 255, 0.78);
+.home-session {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.home-bell {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-1);
+  color: var(--text);
   font-size: 15px;
-  line-height: 1.6;
+  cursor: pointer;
+}
+
+.home-bell:hover {
+  background: var(--surface-3);
+  color: var(--text-strong);
+}
+
+.home-bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  color: #04131f;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .home-user {
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.home-user-card {
-  min-width: 240px;
-  min-height: 132px;
-  padding: 22px;
-  display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
+  gap: 2px;
+  min-width: 0;
+  padding-left: 14px;
+  border-left: 1px solid var(--border-subtle);
+  text-align: right;
 }
 
-.home-user-card span {
-  display: block;
-  margin-bottom: 8px;
-  color: rgba(227, 242, 255, 0.68);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.home-user strong {
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.home-user-card strong {
-  display: block;
-  font-size: 22px;
-}
-
-.home-user-card small {
-  margin-top: 6px;
-  color: var(--text-muted);
+.home-user span {
   font-size: 12px;
+  color: var(--text-muted);
 }
 
-.home-admin-actions {
-  display: grid;
-  gap: 10px;
-}
-
-/* ---------- Barra de ações ---------- */
-
-.home-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
-  align-items: center;
-}
-
-.home-actions-tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-left: auto;
-}
-
-.notification-bell {
-  position: relative;
-  width: 46px;
-  height: 46px;
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 22%, transparent);
-  border-radius: 16px;
-  background: rgba(10, 28, 52, 0.88);
-  color: var(--brand-light);
+.home-logout {
+  height: 40px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow:
-    0 18px 36px rgba(2, 9, 22, 0.22),
-    inset 0 1px 0 var(--surface-3);
 }
 
-.notification-bell:hover {
-  background: rgba(16, 37, 66, 0.96);
-  transform: translateY(-1px);
-}
-
-.notification-bell svg {
-  font-size: 16px;
-}
-
-.notification-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--brand-gradient);
+.home-logout:hover {
+  background: var(--surface-3);
   color: var(--text-strong);
-  font-size: 11px;
-  font-weight: 800;
+}
+
+/* ---------- Menu ---------- */
+
+.home-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  margin-bottom: 32px;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.home-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Linha separando as ferramentas de administração do uso diário. */
+.home-nav-group + .home-nav-group {
+  margin-left: auto;
+  padding-left: 8px;
+  border-left: 1px solid var(--border-subtle);
+}
+
+.home-nav-item {
+  height: 40px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home-nav-item svg {
+  color: var(--brand-light);
+  font-size: 14px;
+}
+
+.home-nav-item:hover {
+  background: var(--surface-3);
+  color: var(--text-strong);
 }
 
 .home-load-error {
-  margin: 0 0 16px;
+  margin: 0 0 20px;
 }
 
 /* ---------- Responsivo ---------- */
 
-@media (max-width: 900px) {
-  .home-header {
-    grid-template-columns: 1fr;
+@media (max-width: 760px) {
+  .home-user span {
+    display: none;
   }
 
-  .home-user {
-    justify-content: flex-start;
-    flex-wrap: wrap;
+  /* O menu rola na horizontal em vez de quebrar em várias linhas. */
+  .home-nav {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding: 6px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
-  .home-admin-actions {
-    grid-auto-flow: column;
-  }
-
-  .home-actions-tools {
-    width: 100%;
+  .home-nav-group + .home-nav-group {
     margin-left: 0;
   }
 }
 
-@media (max-width: 480px) {
-  .home-logout {
-    top: 16px;
-    left: 16px;
-    height: 40px;
-    padding: 0 16px;
-    font-size: 12px;
+@media (max-width: 520px) {
+  .home {
+    min-height: calc(100vh - 32px);
   }
 
-  .home-panel {
-    margin-top: 64px;
+  .home-company,
+  .home-user {
+    display: none;
   }
 
-  .home-brand-logo {
-    width: 56px;
-    height: 56px;
+  .home-wordmark {
+    font-size: 19px;
   }
 
-  .home-user-card {
-    width: 100%;
-    border-radius: 22px;
+  .home-session {
+    gap: 8px;
+  }
+
+  .home-nav {
+    margin-bottom: 20px;
   }
 }

@@ -4,6 +4,7 @@ import App from "./app/App";
 import "./shared/styles/tokens.css";
 import "./shared/styles/base.css";
 import "./shared/styles/ui.css";
+import "./shared/styles/paper-ticket.css";
 import { clearLegacyBrowserStorageOnce } from "./shared/services/storageCleanup";
 
 clearLegacyBrowserStorageOnce();

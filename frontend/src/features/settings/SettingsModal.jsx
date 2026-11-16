@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import Feedback from "../../shared/components/Feedback";
+import BrandName from "../../shared/components/BrandName";
 import Modal from "../../shared/components/Modal";
 import ListEditor from "./ListEditor";
 import { useSettings } from "./useSettings";
 import "./settings.css";
 
 const TABS = [
-  { value: "branding", label: "Empresa" },
-  { value: "catalog", label: "Cadastros" },
-  { value: "sla", label: "SLA e expediente" },
-  { value: "holidays", label: "Feriados" },
+  { value: "branding", label: "Empresa", hint: "Nome, cores e logo" },
+  { value: "catalog", label: "Cadastros", hint: "Locais, categorias e departamentos" },
+  { value: "sla", label: "SLA e expediente", hint: "Horário de trabalho e prazos" },
+  { value: "holidays", label: "Feriados", hint: "Dias sem atendimento" },
 ];
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -62,6 +63,51 @@ function WeekdayPicker({ value, onChange, label }) {
   );
 }
 
+/**
+ * Miniatura da tela de login com o rascunho (nome, cores e logo), antes de salvar.
+ * As cores derivadas da marca são recalculadas aqui porque, no :root, elas já
+ * foram resolvidas com as cores salvas.
+ */
+function BrandingPreview({ branding }) {
+  const { primaryColor, secondaryColor } = branding;
+  const style = {
+    "--brand-primary": primaryColor,
+    "--brand-secondary": secondaryColor,
+    "--brand-light": `color-mix(in srgb, ${primaryColor} 55%, #ffffff)`,
+    "--brand-gradient": `linear-gradient(180deg, ${primaryColor}, ${secondaryColor})`,
+  };
+
+  return (
+    <figure className="brand-preview" style={style}>
+      <div className="paper-ticket-frame" aria-hidden="true">
+        <div className="paper-ticket brand-preview-ticket">
+          <div className="paper-ticket-stub brand-preview-stub">
+            {branding.logoDataUrl ? (
+              <img className="brand-logo" src={branding.logoDataUrl} alt="" />
+            ) : (
+              <div className="brand-mark">
+                <span className="brand-mark-core"></span>
+              </div>
+            )}
+            <div>
+              <p className="brand-wordmark brand-preview-name">
+                <BrandName name={branding.appName || "Nome do sistema"} />
+              </p>
+              {branding.companyName ? <p className="brand-preview-company">{branding.companyName}</p> : null}
+            </div>
+          </div>
+          <div className="paper-ticket-body brand-preview-body">
+            <span className="brand-preview-field"></span>
+            <span className="brand-preview-field"></span>
+            <span className="brand-preview-button">Entrar</span>
+          </div>
+        </div>
+      </div>
+      <figcaption>Prévia da tela de login, com as alterações ainda não salvas.</figcaption>
+    </figure>
+  );
+}
+
 function BrandingTab({ draft, update }) {
   const [logoError, setLogoError] = useState("");
   const branding = draft.branding;
@@ -94,84 +140,80 @@ function BrandingTab({ draft, update }) {
   };
 
   return (
-    <div className="settings-grid">
-      <div className="field">
-        <label className="field-label" htmlFor="settings-app-name">
-          Nome do sistema
-        </label>
-        <input
-          id="settings-app-name"
-          className="input"
-          maxLength={40}
-          value={branding.appName}
-          onChange={set("appName")}
-        />
-      </div>
-
-      <div className="field">
-        <label className="field-label" htmlFor="settings-company">
-          Nome da empresa
-        </label>
-        <input
-          id="settings-company"
-          className="input"
-          maxLength={80}
-          value={branding.companyName}
-          onChange={set("companyName")}
-          placeholder="Ex.: Empresa Exemplo Ltda."
-        />
-      </div>
-
-      <div className="field">
-        <span className="field-label">Cores da marca</span>
-        <div className="color-row">
-          <label className="color-field">
-            <input type="color" value={branding.primaryColor} onChange={set("primaryColor")} />
-            <span>Principal</span>
+    <div className="settings-branding">
+      <div className="settings-branding-fields">
+        <div className="field">
+          <label className="field-label" htmlFor="settings-app-name">
+            Nome do sistema
           </label>
-          <label className="color-field">
-            <input type="color" value={branding.secondaryColor} onChange={set("secondaryColor")} />
-            <span>Secundária</span>
+          <input
+            id="settings-app-name"
+            className="input"
+            maxLength={40}
+            value={branding.appName}
+            onChange={set("appName")}
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label" htmlFor="settings-company">
+            Nome da empresa
           </label>
-          <span
-            className="color-preview"
-            style={{
-              background: `linear-gradient(180deg, ${branding.primaryColor}, ${branding.secondaryColor})`,
-            }}
-          >
-            Prévia do botão
-          </span>
+          <input
+            id="settings-company"
+            className="input"
+            maxLength={80}
+            value={branding.companyName}
+            onChange={set("companyName")}
+            placeholder="Ex.: Empresa Exemplo Ltda."
+          />
+        </div>
+
+        <div className="field">
+          <span className="field-label">Cores da marca</span>
+          <div className="color-row">
+            <label className="color-field">
+              <input type="color" value={branding.primaryColor} onChange={set("primaryColor")} />
+              <span>Principal</span>
+            </label>
+            <label className="color-field">
+              <input type="color" value={branding.secondaryColor} onChange={set("secondaryColor")} />
+              <span>Secundária</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="field">
+          <span className="field-label">Logo</span>
+          <div className="logo-row">
+            {branding.logoDataUrl ? (
+              <img className="logo-preview" src={branding.logoDataUrl} alt="Logo atual" />
+            ) : null}
+            <label className="btn btn-ghost">
+              {branding.logoDataUrl ? "Trocar logo" : "Enviar logo"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                hidden
+                onChange={handleLogo}
+              />
+            </label>
+            {branding.logoDataUrl ? (
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => update((next) => (next.branding.logoDataUrl = ""))}
+              >
+                Remover
+              </button>
+            ) : null}
+          </div>
+          <p className="field-hint">PNG, JPG, WEBP ou SVG de até 300 KB.</p>
+          <Feedback>{logoError}</Feedback>
         </div>
       </div>
 
-      <div className="field">
-        <span className="field-label">Logo</span>
-        <div className="logo-row">
-          {branding.logoDataUrl ? (
-            <img className="logo-preview" src={branding.logoDataUrl} alt="Logo atual" />
-          ) : null}
-          <label className="btn btn-ghost">
-            {branding.logoDataUrl ? "Trocar logo" : "Enviar logo"}
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              hidden
-              onChange={handleLogo}
-            />
-          </label>
-          {branding.logoDataUrl ? (
-            <button
-              type="button"
-              className="btn btn-danger"
-              onClick={() => update((next) => (next.branding.logoDataUrl = ""))}
-            >
-              Remover
-            </button>
-          ) : null}
-        </div>
-        <p className="field-hint">PNG, JPG, WEBP ou SVG de até 300 KB.</p>
-        <Feedback>{logoError}</Feedback>
-      </div>
+      <BrandingPreview branding={branding} />
     </div>
   );
 }
@@ -180,7 +222,7 @@ function CatalogTab({ draft, update }) {
   const sections = [
     {
       key: "locations",
-      title: "Locais / unidades",
+      title: "Locais e unidades",
       hint: 'Aparecem no campo "Local" ao abrir um chamado.',
       placeholder: "Ex.: Matriz, Filial Centro",
     },
@@ -202,7 +244,7 @@ function CatalogTab({ draft, update }) {
     <div className="settings-stack">
       {sections.map((section) => (
         <section key={section.key} className="settings-section">
-          <h3>{section.title}</h3>
+          <h4>{section.title}</h4>
           <p className="field-hint">{section.hint}</p>
           <ListEditor
             id={`settings-${section.key}`}
@@ -224,7 +266,7 @@ function SlaTab({ draft, update }) {
   return (
     <div className="settings-stack">
       <section className="settings-section">
-        <h3>Expediente</h3>
+        <h4>Expediente</h4>
         <p className="field-hint">O prazo do SLA só conta dentro do expediente e nos dias úteis.</p>
         <div className="settings-grid">
           <div className="field">
@@ -265,7 +307,7 @@ function SlaTab({ draft, update }) {
       </section>
 
       <section className="settings-section">
-        <h3>Prazo por prioridade</h3>
+        <h4>Prazo por prioridade</h4>
         <p className="field-hint">Horas úteis para atender o chamado, contadas a partir da abertura.</p>
         <div className="settings-grid settings-grid-3">
           {PRIORITIES.map((priority) => (
@@ -323,7 +365,7 @@ function HolidaysTab({ draft, update, movableOptions }) {
       </section>
 
       <section className="settings-section">
-        <h3>Feriados da empresa ou da cidade</h3>
+        <h4>Feriados da empresa ou da cidade</h4>
         <p className="field-hint">Datas que se repetem todo ano, no formato DD/MM (ex.: 25/01).</p>
         <ListEditor
           id="settings-extra-holidays"
@@ -380,18 +422,24 @@ function SettingsModal({ isOpen = true, onClose }) {
   const hasChanges = draft && settings && JSON.stringify(draft) !== JSON.stringify(settings);
   const tabProps = { draft, update };
 
+  const activeTab = TABS.find((item) => item.value === tab);
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Configurações"
       size="wide"
+      className="settings-modal"
       actions={
         <div className="settings-actions">
-          <Feedback type={feedback.type}>{feedback.text}</Feedback>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            Fechar
-          </button>
+          {feedback.text ? (
+            <Feedback type={feedback.type}>{feedback.text}</Feedback>
+          ) : (
+            <p className="settings-status" aria-live="polite">
+              {hasChanges ? "Há alterações não salvas." : ""}
+            </p>
+          )}
           <button
             type="button"
             className="btn btn-primary"
@@ -403,31 +451,52 @@ function SettingsModal({ isOpen = true, onClose }) {
         </div>
       }
     >
-      <div className="segmented-control settings-tabs" role="tablist" aria-label="Seções das configurações">
-        {TABS.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            role="tab"
-            aria-selected={tab === item.value}
-            className={tab === item.value ? "is-active" : ""}
-            onClick={() => setTab(item.value)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      {!draft ? (
-        <p className="field-hint">Carregando...</p>
-      ) : (
-        <div role="tabpanel">
-          {tab === "branding" ? <BrandingTab {...tabProps} /> : null}
-          {tab === "catalog" ? <CatalogTab {...tabProps} /> : null}
-          {tab === "sla" ? <SlaTab {...tabProps} /> : null}
-          {tab === "holidays" ? <HolidaysTab {...tabProps} movableOptions={options.movableHolidays} /> : null}
+      <div className="settings-layout">
+        <div
+          className="settings-nav"
+          role="tablist"
+          aria-label="Seções das configurações"
+          aria-orientation="vertical"
+        >
+          {TABS.map((item) => (
+            <button
+              key={item.value}
+              id={`settings-tab-${item.value}`}
+              type="button"
+              role="tab"
+              aria-selected={tab === item.value}
+              aria-controls="settings-panel"
+              className={`settings-nav-item ${tab === item.value ? "is-active" : ""}`.trim()}
+              onClick={() => setTab(item.value)}
+            >
+              <span className="settings-nav-label">{item.label}</span>
+              <span className="settings-nav-hint">{item.hint}</span>
+            </button>
+          ))}
         </div>
-      )}
+
+        <div
+          id="settings-panel"
+          className="settings-panel"
+          role="tabpanel"
+          aria-labelledby={`settings-tab-${tab}`}
+        >
+          <h3 className="settings-panel-title">{activeTab.label}</h3>
+
+          {!draft ? (
+            <p className="field-hint">Carregando...</p>
+          ) : (
+            <>
+              {tab === "branding" ? <BrandingTab {...tabProps} /> : null}
+              {tab === "catalog" ? <CatalogTab {...tabProps} /> : null}
+              {tab === "sla" ? <SlaTab {...tabProps} /> : null}
+              {tab === "holidays" ? (
+                <HolidaysTab {...tabProps} movableOptions={options.movableHolidays} />
+              ) : null}
+            </>
+          )}
+        </div>
+      </div>
     </Modal>
   );
 }

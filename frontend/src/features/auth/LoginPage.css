@@ -1,53 +1,16 @@
 /*
- * Login em forma de chamado impresso.
- * Canhoto (marca) | linha de corte com dois recortes | corpo (formulário).
- * No celular o canhoto vai para cima e a linha de corte fica na horizontal.
- * As cores seguem a marca definida em Configurações (--brand-primary).
+ * Telas de acesso (login e "Esqueci minha senha"). O formato de chamado
+ * impresso (canhoto, linha de corte, corpo) vem de shared/styles/paper-ticket.css;
+ * aqui ficam só o tamanho do chamado e o conteúdo de cada parte.
  */
 
-.login-ticket {
-  --ticket-radius: 18px;
-  --notch: 16px;
-  --stub-bg: color-mix(in srgb, var(--brand-primary) 20%, #0a1b31);
-  --body-bg: #0d2140;
-  --tear-line: rgba(255, 255, 255, 0.22);
+.paper-ticket-frame.login-frame {
+  width: min(100%, 820px);
+}
+
+.login-frame .paper-ticket {
   --field-bg: rgba(255, 255, 255, 0.05);
   --field-border: rgba(255, 255, 255, 0.14);
-
-  width: min(100%, 820px);
-  display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-  color: var(--text-strong);
-  /* A sombra fica no conjunto: as máscaras dos recortes cortariam box-shadow. */
-  filter: drop-shadow(0 24px 48px rgba(2, 9, 22, 0.5));
-}
-
-/* Recortes meia-lua: cada lado da linha de corte perde um semicírculo
-   no topo e outro na base, e juntos eles formam o furo do picote. */
-.login-stub,
-.login-body {
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
-}
-
-.login-stub {
-  --notch-x: 100%;
-  -webkit-mask-image:
-    radial-gradient(circle at var(--notch-x) 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
-    radial-gradient(circle at var(--notch-x) 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
-  mask-image:
-    radial-gradient(circle at var(--notch-x) 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
-    radial-gradient(circle at var(--notch-x) 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
-}
-
-.login-body {
-  --notch-x: 0;
-  -webkit-mask-image:
-    radial-gradient(circle at var(--notch-x) 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
-    radial-gradient(circle at var(--notch-x) 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
-  mask-image:
-    radial-gradient(circle at var(--notch-x) 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
-    radial-gradient(circle at var(--notch-x) 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
 }
 
 /* ---------- Canhoto ---------- */
@@ -58,57 +21,6 @@
   justify-content: space-between;
   gap: 48px;
   padding: 40px 36px;
-  border-radius: var(--ticket-radius) 0 0 var(--ticket-radius);
-  background: var(--stub-bg);
-}
-
-.login-mark {
-  position: relative;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: var(--brand-gradient);
-}
-
-.login-mark::before,
-.login-mark::after {
-  content: "";
-  position: absolute;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-}
-
-.login-mark::before {
-  width: 22px;
-  height: 6px;
-  left: 13px;
-  top: 21px;
-}
-
-.login-mark::after {
-  width: 6px;
-  height: 22px;
-  left: 21px;
-  top: 13px;
-}
-
-.login-mark-core {
-  position: absolute;
-  right: 7px;
-  bottom: 7px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #ffffff;
-}
-
-.login-logo {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 6px;
 }
 
 .login-stub-text {
@@ -117,19 +29,7 @@
 }
 
 .login-wordmark {
-  margin: 0;
-  font-family: "Archivo", "Segoe UI", sans-serif;
-  font-stretch: 125%;
-  font-variation-settings: "wdth" 125;
-  font-weight: 800;
   font-size: clamp(30px, 4.4vw, 42px);
-  line-height: 1;
-  letter-spacing: -0.02em;
-  overflow-wrap: break-word;
-}
-
-.login-wordmark span {
-  color: var(--brand-light);
 }
 
 .login-company {
@@ -154,9 +54,6 @@
   flex-direction: column;
   justify-content: center;
   padding: 40px 44px 36px;
-  border-radius: 0 var(--ticket-radius) var(--ticket-radius) 0;
-  border-left: 2px dashed var(--tear-line);
-  background: var(--body-bg);
 }
 
 .login-title {
@@ -314,46 +211,19 @@
   cursor: wait;
 }
 
-/* ---------- Celular: canhoto em cima, corte na horizontal ---------- */
+/* ---------- Estreito: canhoto em cima, em linha com a marca ---------- */
 
-@media (max-width: 720px) {
-  .login-ticket {
-    --notch: 13px;
-    width: min(100%, 440px);
-    grid-template-columns: minmax(0, 1fr);
-  }
-
+@container paper-ticket (max-width: 640px) {
   .login-stub {
-    -webkit-mask-image:
-      radial-gradient(circle at 0 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
-      radial-gradient(circle at 100% 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
-    mask-image:
-      radial-gradient(circle at 0 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
-      radial-gradient(circle at 100% 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
     gap: 16px;
     padding: 24px 24px 22px;
-    border-radius: var(--ticket-radius) var(--ticket-radius) 0 0;
   }
 
   .login-body {
-    -webkit-mask-image:
-      radial-gradient(circle at 0 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
-      radial-gradient(circle at 100% 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
-    mask-image:
-      radial-gradient(circle at 0 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
-      radial-gradient(circle at 100% 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
     padding: 26px 24px 28px;
-    border-left: none;
-    border-top: 2px dashed var(--tear-line);
-    border-radius: 0 0 var(--ticket-radius) var(--ticket-radius);
-  }
-
-  .login-mark,
-  .login-logo {
-    flex: 0 0 auto;
   }
 
   .login-wordmark {
@@ -376,7 +246,7 @@
   }
 }
 
-@media (max-width: 360px) {
+@container paper-ticket (max-width: 340px) {
   .login-stub,
   .login-body {
     padding-left: 18px;
@@ -385,6 +255,12 @@
 
   .login-wordmark {
     font-size: 24px;
+  }
+}
+
+@media (max-width: 720px) {
+  .paper-ticket-frame.login-frame {
+    width: min(100%, 440px);
   }
 }
 
