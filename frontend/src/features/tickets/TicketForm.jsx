@@ -23,9 +23,17 @@ const toOptions = (items, placeholder) => [
  * Configurações da empresa. `onSubmit` devolve uma mensagem de erro ou null.
  */
 function TicketForm({ username, onSubmit }) {
-  const { catalog } = useSettings();
+  const { catalog, isLoaded, loadError, reload } = useSettings();
   const [form, setForm] = useState(EMPTY_FORM);
   const [isSending, setIsSending] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  const retryLoadSettings = async () => {
+    setIsRetrying(true);
+    // O erro, se houver de novo, aparece pelo `loadError`.
+    await reload().catch(() => {});
+    setIsRetrying(false);
+  };
   const [feedback, setFeedback] = useState({ type: "", text: "" });
   const hasCategories = catalog.categories.length > 0;
 
@@ -69,6 +77,20 @@ function TicketForm({ username, onSubmit }) {
         <p>Abra um novo chamado para a equipe de tecnologia.</p>
       </div>
 
+      {loadError && !isLoaded ? (
+        <div className="feedback feedback-error" role="alert">
+          {loadError} Sem elas não dá para escolher local e categoria.{" "}
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={retryLoadSettings}
+            disabled={isRetrying}
+          >
+            {isRetrying ? "Carregando..." : "Tentar de novo"}
+          </button>
+        </div>
+      ) : null}
+
       <div className="ticket-form-grid">
         <div className="field">
           <label className="field-label" htmlFor="ticket-assunto">
@@ -104,7 +126,7 @@ function TicketForm({ username, onSubmit }) {
             onChange={setField("local")}
             options={toOptions(catalog.locations, "Selecione um local")}
           />
-          {!catalog.locations.length ? (
+          {isLoaded && !catalog.locations.length ? (
             <p className="field-hint">
               Nenhum local cadastrado. O administrador cadastra em Configurações → Cadastros.
             </p>

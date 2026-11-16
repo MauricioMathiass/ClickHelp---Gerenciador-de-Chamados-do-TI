@@ -3,7 +3,6 @@ import { FaBell } from "react-icons/fa";
 import { FaArrowRightFromBracket } from "react-icons/fa6";
 import Feedback from "../../shared/components/Feedback";
 import { getApiErrorMessage } from "../../shared/services/api";
-import { notifyNewTicketByEmail } from "../notifications/emailNotifications";
 import NotificationsModal from "../notifications/NotificationsModal";
 import {
   clearNotifications,
@@ -19,12 +18,12 @@ import TicketForm from "../tickets/TicketForm";
 import TicketHistoryModal from "../tickets/TicketHistoryModal";
 import { createChamado, getChamados, updateChamado } from "../tickets/ticketsService";
 import TiPanelModal from "../tickets/TiPanelModal";
+import { ROLE_ADMIN, TI_ROLES } from "../users/roles";
 import UsersModal from "../users/UsersModal";
 import HomeHeader from "./HomeHeader";
 import "./HomePage.css";
 
 const TICKETS_REFRESH_MS = 30000;
-const TI_ROLES = ["Administrador", "Analista de TI"];
 
 /** Telas que abrem em janela (modal) a partir da página inicial. */
 const MODALS = {
@@ -46,8 +45,11 @@ function HomePage({ onBack, session }) {
   const user = session?.user;
   const username = user?.username ?? "";
   const canViewTiPanel = TI_ROLES.includes(user?.role);
-  const isAdmin = user?.role === "Administrador";
-  const myTickets = tickets.filter((item) => item.solicitante === username);
+  const isAdmin = user?.role === ROLE_ADMIN;
+  // O backend compara sem diferenciar maiúsculas; dados antigos podem ter "Maria.Silva".
+  const myTickets = tickets.filter(
+    (item) => String(item.solicitante ?? "").toLowerCase() === username.toLowerCase()
+  );
   const { notifications, archived, unreadCount } = notificationsState;
 
   const open = (name) => () => setOpenModal(name);
@@ -86,12 +88,7 @@ function HomePage({ onBack, session }) {
   /** Envia o chamado; devolve a mensagem de erro, se houver. */
   const handleCreateTicket = async (form) => {
     try {
-      const created = await createChamado(form);
-
-      notifyNewTicketByEmail(created).catch((error) =>
-        console.error("Falha ao enviar notificação por e-mail:", error)
-      );
-
+      await createChamado(form);
       await Promise.all([refreshTickets(), refreshNotifications()]);
       setOpenModal(MODALS.MY_TICKETS);
       return null;
@@ -192,12 +189,7 @@ function HomePage({ onBack, session }) {
         <>
           {isOpen(MODALS.USERS) ? <UsersModal isOpen onClose={close} currentUserId={user?.id} /> : null}
           {isOpen(MODALS.SETTINGS) ? <SettingsModal isOpen onClose={close} /> : null}
-          {/* Rotinas não entram no relatório de SLA. */}
-          <SlaReportModal
-            isOpen={isOpen(MODALS.SLA)}
-            onClose={close}
-            chamados={tickets.filter((item) => !item.isFixedRoutine)}
-          />
+          <SlaReportModal isOpen={isOpen(MODALS.SLA)} onClose={close} chamados={tickets} />
         </>
       ) : null}
 

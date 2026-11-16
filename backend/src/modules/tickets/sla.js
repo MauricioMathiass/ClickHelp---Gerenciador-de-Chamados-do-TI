@@ -90,11 +90,24 @@ export const createCalendar = (settings = DEFAULT_CALENDAR) => {
   };
 };
 
+// Mais de um ano sem dia útil só acontece com a configuração errada (ex.: sem
+// dias úteis ou com todos os dias como feriado). Sem este limite, o laço nunca
+// terminaria e travaria o servidor inteiro.
+const MAX_DAYS_TO_SEARCH = 400;
+
 const moveToNextBusinessDayStart = (date, calendar) => {
   const nextDate = new Date(date);
+  let searchedDays = 0;
 
   do {
     nextDate.setDate(nextDate.getDate() + 1);
+    searchedDays += 1;
+
+    if (searchedDays > MAX_DAYS_TO_SEARCH) {
+      throw new Error(
+        "O calendário de trabalho não tem nenhum dia útil: revise expediente, dias úteis e feriados."
+      );
+    }
   } while (!calendar.isBusinessDay(nextDate));
 
   nextDate.setHours(calendar.workStartHour, 0, 0, 0);

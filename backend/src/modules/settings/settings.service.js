@@ -146,6 +146,10 @@ const normalizeHolidays = (holidays = {}) => {
     throw badRequest(`Feriado inválido: "${invalid}". Use o formato MM-DD (ex.: 01-25).`);
   }
 
+  if (extra.length > MAX_LIST_ITEMS) {
+    throw badRequest(`A lista de feriados aceita no máximo ${MAX_LIST_ITEMS} datas.`);
+  }
+
   return { national: holidays.national !== false, movable, extra: extra.sort() };
 };
 

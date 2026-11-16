@@ -65,3 +65,8 @@ test("expediente, dias uteis e feriados configuraveis", () => {
     local(2026, 11, 16, 10).toISOString()
   );
 });
+
+test("calendario sem nenhum dia util gera erro em vez de travar o servidor", () => {
+  const semDiasUteis = createCalendar({ workDays: [] });
+  assert.throws(() => buildSlaLimitFromDate("2026-01-05T10:00:00", 8, semDiasUteis), /nenhum dia útil/);
+});

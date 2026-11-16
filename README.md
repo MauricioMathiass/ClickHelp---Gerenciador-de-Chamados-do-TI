@@ -79,7 +79,8 @@ As tabelas são criadas automaticamente quando a API inicia.
 | `FRONTEND_ORIGIN` | endereço do site no Netlify (ex.: `https://clickhelp.netlify.app`) |
 | `JWT_SECRET`      | gerado pelo Render, não precisa preencher                          |
 
-3. Depois do deploy, abra `https://<sua-api>.onrender.com/api/health`: deve responder `"status": "ok"`.
+3. (Opcional) Para o aviso por e-mail de novos chamados, preencha também `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, `EMAILJS_PUBLIC_KEY`, `EMAILJS_PRIVATE_KEY` e `NOTIFICATION_EMAIL_TO`. No painel do EmailJS, em **Account → Security**, ative **Allow EmailJS API for non-browser applications** e **Use Private Key**. O envio sai da API, então as chaves nunca aparecem no site.
+4. Depois do deploy, abra `https://<sua-api>.onrender.com/api/health`: deve responder `"status": "ok"`.
 
 O Render publica a cada push na `main`, só depois de o CI passar (`autoDeployTrigger: checksPass`). No plano gratuito, a API "dorme" após 15 minutos sem uso e o primeiro acesso depois disso leva até cerca de 1 minuto.
 
@@ -87,8 +88,7 @@ O Render publica a cada push na `main`, só depois de o CI passar (`autoDeployTr
 
 1. Em [app.netlify.com](https://app.netlify.com), **Add new project → Import an existing project → GitHub** e escolha este repositório. O `netlify.toml` já define pasta, build e publicação.
 2. Em **Site configuration → Environment variables**, cadastre `VITE_API_URL` com o endereço da API (ex.: `https://clickhelp-api.onrender.com/api`; se faltar o `/api` no fim, o site acrescenta sozinho). Sem ela, o build no Netlify falha de propósito, com uma mensagem explicando o que falta.
-3. (Opcional) Cadastre também as variáveis `VITE_EMAILJS_*` e `VITE_NOTIFICATION_EMAIL_TO` para o aviso por e-mail de novos chamados.
-4. Faça um novo deploy (**Deploys → Trigger deploy**), pois as variáveis `VITE_*` entram no momento do build.
+3. Faça um novo deploy (**Deploys → Trigger deploy**), pois as variáveis `VITE_*` entram no momento do build.
 
 ### 4. Conferência final
 

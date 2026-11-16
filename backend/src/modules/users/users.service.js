@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { config } from "../../config/env.js";
 import { badRequest, notFound } from "../../shared/http/httpError.js";
 import { query, toIso } from "../../shared/db/database.js";
@@ -47,6 +48,14 @@ const getEnvAdmin = () => {
     name: config.admin.name,
     role: ROLE_ADMIN,
     department: config.admin.department,
+    // Versão da senha derivada da própria senha: trocar ADMIN_PASSWORD derruba
+    // as sessões abertas. O HMAC com o segredo do JWT não deixa o token (que é
+    // legível) servir para adivinhar a senha.
+    passwordVersion: crypto
+      .createHmac("sha256", config.jwtSecret)
+      .update(config.admin.password)
+      .digest("hex")
+      .slice(0, 16),
   };
 };
 

@@ -37,3 +37,15 @@ services:
       # Endereço do site no Netlify (ex.: https://clickhelp.netlify.app)
       - key: FRONTEND_ORIGIN
         sync: false
+      # EmailJS (opcional): aviso por e-mail de novos chamados. Deixe em branco
+      # para não enviar. Ver backend/.env.example.
+      - key: EMAILJS_SERVICE_ID
+        sync: false
+      - key: EMAILJS_TEMPLATE_ID
+        sync: false
+      - key: EMAILJS_PUBLIC_KEY
+        sync: false
+      - key: EMAILJS_PRIVATE_KEY
+        sync: false
+      - key: NOTIFICATION_EMAIL_TO
+        sync: false

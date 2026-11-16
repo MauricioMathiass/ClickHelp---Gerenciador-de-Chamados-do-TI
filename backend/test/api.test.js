@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
+import http from "node:http";
 import { after, before, describe, test } from "node:test";
 
 // Ambiente isolado: banco embutido só na memória (nunca toca no Neon nem nos
@@ -9,9 +11,23 @@ process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || "memory://";
 process.env.ADMIN_USERNAME = "admin.teste";
 process.env.ADMIN_PASSWORD = "senha-admin-teste";
 process.env.JWT_SECRET = "segredo-de-teste-com-mais-de-32-caracteres!!";
+// Nunca envia e-mail de verdade, mesmo que o backend/.env tenha o EmailJS configurado.
+const EMAIL_VARS = [
+  "EMAILJS_SERVICE_ID",
+  "EMAILJS_TEMPLATE_ID",
+  "EMAILJS_PUBLIC_KEY",
+  "EMAILJS_PRIVATE_KEY",
+  "NOTIFICATION_EMAIL_TO",
+  "EMAILJS_API_URL",
+];
+EMAIL_VARS.forEach((name) => {
+  process.env[name] = "";
+});
 
 const { default: app } = await import("../src/app.js");
 const { closeDatabase, query } = await import("../src/shared/db/database.js");
+const { config } = await import("../src/config/env.js");
+const { buildSlaLimitFromDate, createCalendar } = await import("../src/modules/tickets/sla.js");
 
 let server;
 let baseUrl;
@@ -473,10 +489,161 @@ describe("configuracoes da empresa", () => {
     await api("PUT", "/settings", { token: adminToken, body: curto });
 
     const { data } = await api("POST", "/chamados", { token: mariaToken, body: novoChamado("SLA curto") });
-    const horasUteis = (new Date(data.chamado.dataLimite) - new Date(data.chamado.dataCriacao)) / 3600000;
-    // Dentro do expediente o prazo é exatamente 2h; fora dele, começa no próximo expediente.
-    assert.ok(horasUteis <= 2 || new Date(data.chamado.dataLimite).getHours() <= 10);
-
     await api("PUT", "/settings", { token: adminToken, body: testSettings() });
+
+    // Compara com o cálculo esperado a partir da própria data de abertura: o
+    // resultado não depende da hora nem do dia em que o teste roda.
+    const calendario = createCalendar({ ...curto.sla, holidays: curto.holidays });
+    const esperado = buildSlaLimitFromDate(data.chamado.dataCriacao, 2, calendario);
+    const com48h = buildSlaLimitFromDate(data.chamado.dataCriacao, 48, calendario);
+    assert.equal(data.chamado.dataLimite, esperado);
+    assert.notEqual(data.chamado.dataLimite, com48h);
+  });
+});
+
+describe("correcoes da quarta analise", () => {
+  test("login trava apos 5 erros seguidos, mesmo com a senha certa, sem afetar outros usuarios", async () => {
+    await api("POST", "/users", {
+      token: adminToken,
+      body: { name: "Trava", surname: "Login", password: "senha123" },
+    });
+
+    for (let tentativa = 1; tentativa <= 5; tentativa += 1) {
+      const errada = await api("POST", "/auth/login", {
+        body: { username: "trava.login", password: "errada" },
+      });
+      assert.equal(errada.status, 401);
+    }
+
+    const bloqueada = await api("POST", "/auth/login", {
+      body: { username: "TRAVA.LOGIN", password: "senha123" },
+    });
+    assert.equal(bloqueada.status, 429);
+    assert.match(bloqueada.data.message, /Muitas tentativas/);
+
+    assert.ok(await login("maria.silva", "senha123"));
+  });
+
+  test("trocar a senha do admin do .env derruba as sessoes abertas dele", async () => {
+    const senhaOriginal = config.admin.password;
+    const tokenAntigo = await login("admin.teste", senhaOriginal);
+    assert.equal((await api("GET", "/auth/me", { token: tokenAntigo })).status, 200);
+
+    try {
+      config.admin.password = "senha-admin-trocada";
+      assert.equal((await api("GET", "/auth/me", { token: tokenAntigo })).status, 401);
+
+      const tokenNovo = await login("admin.teste", "senha-admin-trocada");
+      assert.equal((await api("GET", "/auth/me", { token: tokenNovo })).status, 200);
+    } finally {
+      config.admin.password = senhaOriginal;
+    }
+
+    assert.equal((await api("GET", "/auth/me", { token: tokenAntigo })).status, 200);
+  });
+
+  test("fechar depois do prazo marca o SLA como violado", async () => {
+    const { data } = await api("POST", "/chamados", { token: mariaToken, body: novoChamado("Atrasado") });
+    await query("UPDATE chamados SET data_limite = NOW() - INTERVAL '1 hour' WHERE id = $1", [
+      data.chamado.id,
+    ]);
+
+    const fechado = await api("PATCH", `/chamados/${data.chamado.id}`, {
+      token: analistaToken,
+      body: { status: "Fechado", resposta: "Resolvido com atraso" },
+    });
+    assert.equal(fechado.status, 200);
+    assert.equal(fechado.data.chamado.slaViolado, true);
+  });
+
+  test("reabrir limpa data de fechamento, responsavel e SLA", async () => {
+    const { data } = await api("POST", "/chamados", { token: mariaToken, body: novoChamado("Reabrir") });
+    const url = `/chamados/${data.chamado.id}`;
+    await api("PATCH", url, { token: analistaToken, body: { status: "Fechado", resposta: "Feito" } });
+
+    const reaberto = await api("PATCH", url, { token: adminToken, body: { status: "Em andamento" } });
+    assert.equal(reaberto.status, 200);
+    assert.equal(reaberto.data.chamado.status, "Em andamento");
+    assert.equal(reaberto.data.chamado.dataFechamento, undefined);
+    assert.equal(reaberto.data.chamado.closedByUsername, undefined);
+    assert.equal(reaberto.data.chamado.slaViolado, undefined);
+  });
+
+  test("chamado restrito (admin-only) so aparece e so muda para o administrador", async () => {
+    const id = crypto.randomUUID();
+    await query(
+      `INSERT INTO chamados (id, assunto, solicitante, prioridade, problema, status, visibility,
+                             data_criacao, data_atualizacao)
+       VALUES ($1, 'Restrito', 'maria.silva', 'baixa', 'x', 'Aberto', 'admin-only', NOW(), NOW())`,
+      [id]
+    );
+    const ids = async (token) =>
+      (await api("GET", "/chamados", { token })).data.chamados.map((item) => item.id);
+
+    assert.ok((await ids(adminToken)).includes(id));
+    assert.ok(!(await ids(analistaToken)).includes(id));
+    assert.ok(!(await ids(mariaToken)).includes(id));
+
+    const patch = await api("PATCH", `/chamados/${id}`, {
+      token: analistaToken,
+      body: { status: "Em andamento" },
+    });
+    assert.equal(patch.status, 404);
+  });
+
+  test("feriados extras tem limite de itens", async () => {
+    const muitos = testSettings();
+    muitos.holidays.extra = Array.from({ length: 101 }, (_, index) => {
+      const dia = new Date(2025, 0, 1 + index);
+      return `${String(dia.getMonth() + 1).padStart(2, "0")}-${String(dia.getDate()).padStart(2, "0")}`;
+    });
+    const { status } = await api("PUT", "/settings", { token: adminToken, body: muitos });
+    assert.equal(status, 400);
+  });
+
+  test("novo chamado envia o e-mail pelo backend, com as chaves que ficam so no servidor", async () => {
+    let receive;
+    const recebido = new Promise((resolve) => {
+      receive = resolve;
+    });
+    const emailServer = http.createServer((req, res) => {
+      let body = "";
+      req.on("data", (chunk) => {
+        body += chunk;
+      });
+      req.on("end", () => {
+        res.end("OK");
+        receive(JSON.parse(body));
+      });
+    });
+    await new Promise((resolve) => emailServer.listen(0, resolve));
+
+    Object.assign(process.env, {
+      EMAILJS_SERVICE_ID: "service_teste",
+      EMAILJS_TEMPLATE_ID: "template_teste",
+      EMAILJS_PUBLIC_KEY: "publica",
+      EMAILJS_PRIVATE_KEY: "privada",
+      NOTIFICATION_EMAIL_TO: "ti@exemplo.com",
+      EMAILJS_API_URL: `http://127.0.0.1:${emailServer.address().port}/send`,
+    });
+
+    try {
+      const { data } = await api("POST", "/chamados", { token: mariaToken, body: novoChamado("Com e-mail") });
+      const enviado = await Promise.race([
+        recebido,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("e-mail não enviado")), 5000)),
+      ]);
+
+      assert.equal(enviado.service_id, "service_teste");
+      assert.equal(enviado.accessToken, "privada");
+      assert.equal(enviado.template_params.to_email, "ti@exemplo.com");
+      assert.equal(enviado.template_params.chamado_id, data.chamado.id);
+      assert.equal(enviado.template_params.solicitante, "maria.silva");
+    } finally {
+      EMAIL_VARS.forEach((name) => {
+        process.env[name] = "";
+      });
+      await new Promise((resolve) => emailServer.close(resolve));
+    }
   });
 });

@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { query, toIso, transaction } from "../../shared/db/database.js";
 import { badRequest, notFound } from "../../shared/http/httpError.js";
 import { ROLE_ADMIN, TI_ROLES } from "../../shared/roles.js";
+import { sendNewTicketEmail } from "../notifications/email.service.js";
 import { createNotification } from "../notifications/notifications.service.js";
 import { getSettings, getWorkCalendar, PRIORITIES } from "../settings/settings.service.js";
 import { buildSlaLimitFromDate } from "./sla.js";
@@ -200,6 +201,12 @@ export const createChamado = async (data, user) => {
     recipients: { roles: TI_ROLES, excludeUsernames: [user.username] },
     context: { chamadoId: chamado.id },
   });
+
+  // Sem await: o EmailJS pode demorar, e o chamado já está salvo. A falha
+  // fica registrada no log do servidor.
+  sendNewTicketEmail(chamado).catch((error) =>
+    console.error("[ClickHELP] Falha ao enviar o e-mail do novo chamado:", error.message)
+  );
 
   return chamado;
 };

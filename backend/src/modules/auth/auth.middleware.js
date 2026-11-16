@@ -22,7 +22,7 @@ export const requireAuth = async (req, _res, next) => {
   if (
     !user ||
     user.username !== payload.username ||
-    Number(payload.pv ?? 0) !== Number(user.passwordVersion ?? 0)
+    String(payload.pv ?? 0) !== String(user.passwordVersion ?? 0)
   ) {
     return next(unauthorized());
   }

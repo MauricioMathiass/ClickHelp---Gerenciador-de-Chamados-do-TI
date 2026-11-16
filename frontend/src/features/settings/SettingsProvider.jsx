@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { getApiErrorMessage } from "../../shared/services/api";
 import { getPublicSettings, getSettings, saveSettings } from "./settingsService";
 import { SettingsContext } from "./useSettings";
 
@@ -29,6 +30,7 @@ export function SettingsProvider({ isAuthenticated, children }) {
   const [branding, setBranding] = useState(DEFAULT_BRANDING);
   const [settings, setSettings] = useState(null);
   const [options, setOptions] = useState({ movableHolidays: [] });
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     getPublicSettings()
@@ -37,15 +39,23 @@ export function SettingsProvider({ isAuthenticated, children }) {
   }, []);
 
   const reload = useCallback(async () => {
-    const data = await getSettings();
-    setSettings(data.settings);
-    setOptions(data.options ?? { movableHolidays: [] });
-    setBranding({ ...DEFAULT_BRANDING, ...data.settings.branding });
-    return data.settings;
+    try {
+      const data = await getSettings();
+      setSettings(data.settings);
+      setOptions(data.options ?? { movableHolidays: [] });
+      setBranding({ ...DEFAULT_BRANDING, ...data.settings.branding });
+      setLoadError("");
+      return data.settings;
+    } catch (error) {
+      // Fica visível (ex.: no formulário de chamado), com opção de tentar de novo.
+      setLoadError(getApiErrorMessage(error, "Não foi possível carregar as configurações."));
+      throw error;
+    }
   }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
+      // O erro já fica em `loadError`; aqui só evita a rejeição sem tratamento.
       // eslint-disable-next-line react-hooks/set-state-in-effect -- busca ao entrar; o estado muda só após a resposta
       reload().catch(() => {});
     }
@@ -67,11 +77,13 @@ export function SettingsProvider({ isAuthenticated, children }) {
       branding,
       settings: isAuthenticated ? settings : null,
       catalog: (isAuthenticated && settings?.catalog) || EMPTY_CATALOG,
+      isLoaded: Boolean(isAuthenticated && settings),
+      loadError: isAuthenticated ? loadError : "",
       options,
       reload,
       save,
     }),
-    [branding, settings, isAuthenticated, options, reload, save]
+    [branding, settings, isAuthenticated, loadError, options, reload, save]
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

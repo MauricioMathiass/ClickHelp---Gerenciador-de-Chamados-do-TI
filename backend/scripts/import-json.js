@@ -82,7 +82,8 @@ const importChamados = async (tx, chamados) => {
       [
         item.id,
         item.assunto ?? "",
-        item.solicitante ?? "",
+        // Mesmo formato dos logins (minúsculas), para o chamado aparecer ao dono.
+        normalize(item.solicitante),
         item.local ?? "",
         item.categoria ?? "",
         item.prioridade ?? "media",
@@ -104,6 +105,9 @@ const importChamados = async (tx, chamados) => {
     );
     count += rows.length;
   }
+
+  // Corrige também chamados importados antes, quando o solicitante não era normalizado.
+  await tx("UPDATE chamados SET solicitante = LOWER(solicitante) WHERE solicitante <> LOWER(solicitante)");
 
   return count;
 };

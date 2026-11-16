@@ -7,6 +7,10 @@ import routes from "./routes.js";
 
 const app = express();
 
+// No Render a API fica atrás de um proxy: sem isto, req.ip seria o IP do
+// proxy para todo mundo e o limite de tentativas de login valeria para todos.
+app.set("trust proxy", 1);
+
 app.use(
   cors({
     origin: config.frontendOrigins?.length ? config.frontendOrigins : "http://localhost:5173",
