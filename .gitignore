@@ -23,3 +23,6 @@ backend/src/data/pgdata/
 Thumbs.db
 .vscode/
 .idea/
+
+# Configurações locais do Claude Code (ficam só na máquina)
+.claude/
