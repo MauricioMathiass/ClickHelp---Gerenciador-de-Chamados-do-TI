@@ -184,6 +184,15 @@ describe("chamados", () => {
     assert.equal(segundo.numero, primeiro.numero + 1);
   });
 
+  test("lista traz o nome de quem abriu o chamado", async () => {
+    await api("POST", "/chamados", { token: mariaToken, body: novoChamado("Com nome") });
+    const { data } = await api("GET", "/chamados", { token: adminToken });
+    const chamado = data.chamados.find((item) => item.assunto === "Com nome");
+
+    assert.equal(chamado.solicitante, "maria.silva");
+    assert.equal(chamado.solicitanteNome, "Maria Silva");
+  });
+
   test("valida prioridade e campos obrigatorios", async () => {
     const semCampos = await api("POST", "/chamados", { token: mariaToken, body: {} });
     assert.equal(semCampos.status, 400);

@@ -109,7 +109,8 @@ function UserCard({ user, isSelf, onSaved }) {
 
       {locked ? (
         <p className="user-card-note">
-          Administrador principal, definido no arquivo .env do servidor. Não pode ser alterado por aqui.
+          Administrador principal, criado na instalação do sistema. Os dados dele só mudam na configuração do
+          servidor, não por aqui.
         </p>
       ) : (
         <div className="user-card-actions">

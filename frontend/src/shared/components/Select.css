@@ -24,6 +24,11 @@
     transform 0.2s ease;
 }
 
+.custom-select .custom-select-trigger[aria-invalid="true"],
+.custom-select.form-select .custom-select-trigger[aria-invalid="true"] {
+  border-color: color-mix(in srgb, var(--color-danger) 60%, transparent);
+}
+
 .custom-select-trigger:hover {
   border-color: rgba(126, 212, 255, 0.32);
   background-color: var(--surface-3);

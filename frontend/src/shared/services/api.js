@@ -54,8 +54,12 @@ export const getApiErrorMessage = (error, fallback) => {
     return error.response.data.message;
   }
 
+  if (error.code === "ECONNABORTED") {
+    return "O servidor demorou demais para responder. Tente de novo em instantes.";
+  }
+
   if (!error.response) {
-    return "Não foi possível conectar ao servidor. Verifique se o backend está rodando.";
+    return "Não foi possível conectar ao sistema. Confira sua internet e tente de novo; se continuar, avise a equipe de TI.";
   }
 
   return fallback;

@@ -4,7 +4,7 @@ import Feedback from "../../shared/components/Feedback";
 import Select from "../../shared/components/Select";
 import { formatPrioridade, statusClassName, toDateInputValue } from "../../shared/utils/format";
 import { useSettings } from "../settings/useSettings";
-import { formatProtocolo } from "../tickets/ticketDisplay";
+import { formatProtocolo, requesterLabel } from "../tickets/ticketDisplay";
 import { exportSlaExcel } from "./exportSlaExcel";
 import SlaChartModal from "./SlaChartModal";
 import { buildSlaStats, getSlaLabel, SLA_FILTER_OPTIONS, slaClassName } from "./slaUtils";
@@ -42,9 +42,7 @@ function SlaReportView({ chamados }) {
           (!filters.date || toDateInputValue(item.dataCriacao) === filters.date) &&
           (!filters.status || item.status === filters.status) &&
           (!solicitante ||
-            String(item.solicitante ?? "")
-              .toLowerCase()
-              .includes(solicitante)) &&
+            `${item.solicitante ?? ""} ${item.solicitanteNome ?? ""}`.toLowerCase().includes(solicitante)) &&
           (!filters.sla || item.slaLabel === filters.sla)
       );
   }, [chamados, filters]);
@@ -166,7 +164,7 @@ function SlaReportView({ chamados }) {
                     <span className={`ticket-status ${statusClassName(item.status)}`}>{item.status}</span>
                   </td>
                   <td data-label="Assunto">{item.assunto}</td>
-                  <td data-label="Solicitante">{item.solicitante}</td>
+                  <td data-label="Solicitante">{requesterLabel(item)}</td>
                   <td data-label="Categoria">{item.categoria || "—"}</td>
                   <td data-label="Prioridade">{formatPrioridade(item.prioridade)}</td>
                   <td data-label="SLA" className={slaClassName(item.slaLabel)}>

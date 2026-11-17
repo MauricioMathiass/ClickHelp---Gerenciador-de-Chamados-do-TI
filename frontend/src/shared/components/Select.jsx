@@ -10,6 +10,7 @@ function Select({
   className = "",
   disabled = false,
   id,
+  invalid = false,
   name,
   onChange,
   options,
@@ -86,6 +87,7 @@ function Select({
         onClick={handleToggle}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
+        aria-invalid={invalid || undefined}
         aria-label={ariaLabel ? `${ariaLabel}: ${selectedOption?.label ?? placeholder}` : undefined}
         disabled={disabled}
       >

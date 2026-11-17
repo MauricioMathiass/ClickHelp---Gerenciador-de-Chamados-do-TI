@@ -13,6 +13,18 @@ const PRIORIDADE_OPTIONS = [
 
 const EMPTY_FORM = { assunto: "", local: "", categoria: "", prioridade: "", problema: "" };
 
+/** Nome de cada campo na mensagem de erro ("Falta preencher: assunto e local."). */
+const FIELD_NAMES = {
+  assunto: "assunto",
+  local: "local",
+  categoria: "categoria",
+  prioridade: "prioridade",
+  problema: "descrição do problema",
+};
+
+const listInPortuguese = (items) =>
+  items.length > 1 ? `${items.slice(0, -1).join(", ")} e ${items[items.length - 1]}` : items[0];
+
 const toOptions = (items, placeholder) => [
   { value: "", label: placeholder },
   ...items.map((item) => ({ value: item, label: item })),
@@ -22,7 +34,7 @@ const toOptions = (items, placeholder) => [
  * Formulário de nova solicitação, no formato de chamado impresso. Locais e categorias vêm das
  * Configurações da empresa. `onSubmit` devolve uma mensagem de erro ou null.
  */
-function TicketForm({ username, onSubmit, headingTag = "h1" }) {
+function TicketForm({ requesterName, onSubmit, headingTag = "h1" }) {
   const { catalog, isLoaded, loadError, reload } = useSettings();
   const [form, setForm] = useState(EMPTY_FORM);
   const [isSending, setIsSending] = useState(false);
@@ -35,25 +47,33 @@ function TicketForm({ username, onSubmit, headingTag = "h1" }) {
     setIsRetrying(false);
   };
   const [feedback, setFeedback] = useState({ type: "", text: "" });
+  const [invalidFields, setInvalidFields] = useState([]);
   const hasCategories = catalog.categories.length > 0;
+  const isInvalid = (field) => invalidFields.includes(field);
 
   const setField = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
     setFeedback({ type: "", text: "" });
+    setInvalidFields((current) => current.filter((item) => item !== field));
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const missing =
-      !form.assunto.trim() ||
-      !form.local ||
-      !form.prioridade ||
-      !form.problema.trim() ||
-      (hasCategories && !form.categoria);
+    const missing = [
+      !form.assunto.trim() && "assunto",
+      !form.local && "local",
+      hasCategories && !form.categoria && "categoria",
+      !form.prioridade && "prioridade",
+      !form.problema.trim() && "problema",
+    ].filter(Boolean);
 
-    if (missing) {
-      setFeedback({ type: "error", text: "Preencha todos os campos obrigatórios antes de enviar." });
+    if (missing.length) {
+      setInvalidFields(missing);
+      setFeedback({
+        type: "error",
+        text: `Falta preencher: ${listInPortuguese(missing.map((field) => FIELD_NAMES[field]))}.`,
+      });
       return;
     }
 
@@ -84,7 +104,7 @@ function TicketForm({ username, onSubmit, headingTag = "h1" }) {
 
           <dl className="request-meta">
             <dt>Solicitante</dt>
-            <dd>{username}</dd>
+            <dd>{requesterName}</dd>
           </dl>
         </div>
 
@@ -111,6 +131,7 @@ function TicketForm({ username, onSubmit, headingTag = "h1" }) {
               id="ticket-assunto"
               className="input"
               type="text"
+              aria-invalid={isInvalid("assunto") || undefined}
               value={form.assunto}
               maxLength={150}
               onChange={setField("assunto")}
@@ -126,6 +147,7 @@ function TicketForm({ username, onSubmit, headingTag = "h1" }) {
               <Select
                 id="ticket-local"
                 className="form-select"
+                invalid={isInvalid("local")}
                 name="local"
                 value={form.local}
                 onChange={setField("local")}
@@ -146,6 +168,7 @@ function TicketForm({ username, onSubmit, headingTag = "h1" }) {
                 <Select
                   id="ticket-categoria"
                   className="form-select"
+                  invalid={isInvalid("categoria")}
                   name="categoria"
                   value={form.categoria}
                   onChange={setField("categoria")}
@@ -161,6 +184,7 @@ function TicketForm({ username, onSubmit, headingTag = "h1" }) {
               <Select
                 id="ticket-prioridade"
                 className="form-select"
+                invalid={isInvalid("prioridade")}
                 name="prioridade"
                 value={form.prioridade}
                 onChange={setField("prioridade")}
@@ -176,6 +200,7 @@ function TicketForm({ username, onSubmit, headingTag = "h1" }) {
             <textarea
               id="ticket-problema"
               className="input"
+              aria-invalid={isInvalid("problema") || undefined}
               rows="5"
               value={form.problema}
               maxLength={5000}

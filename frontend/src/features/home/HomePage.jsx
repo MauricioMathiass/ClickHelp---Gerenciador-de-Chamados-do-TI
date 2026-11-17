@@ -174,7 +174,7 @@ function HomePage({ onBack, session }) {
       <div className="home-main">
         <Feedback className="home-load-error">{loadError}</Feedback>
 
-        {!isTeam ? <TicketForm username={username} onSubmit={handleCreateTicket} /> : null}
+        {!isTeam ? <TicketForm requesterName={user?.name || username} onSubmit={handleCreateTicket} /> : null}
 
         {isTeam && currentView === VIEWS.QUEUE ? (
           <TiQueueView chamados={tickets} isLoading={!hasLoaded} onUpdateChamado={handleUpdateTicket} />
@@ -189,7 +189,7 @@ function HomePage({ onBack, session }) {
 
       {isTeam && isOpen(MODALS.NEW_TICKET) ? (
         <Modal isOpen onClose={close} title="Nova solicitação" className="modal-paper">
-          <TicketForm username={username} onSubmit={handleCreateTicket} headingTag="p" />
+          <TicketForm requesterName={user?.name || username} onSubmit={handleCreateTicket} headingTag="p" />
         </Modal>
       ) : null}
 

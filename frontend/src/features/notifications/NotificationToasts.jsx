@@ -4,7 +4,9 @@ import "./NotificationToasts.css";
 import { readToastedIds, saveToastedIds, subscribeNotifications } from "./notificationsService";
 
 const TOAST_DURATION_MS = 6000;
-const MAX_VISIBLE_TOASTS = 4;
+const MAX_VISIBLE_TOASTS = 3;
+/** A partir daqui, várias notificações chegando juntas viram um aviso só. */
+const GROUP_FROM = 3;
 
 const playNotificationSound = async (audioContextRef) => {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -96,16 +98,31 @@ function NotificationToasts({ session }) {
 
       fresh.forEach((notification) => {
         toastedIds.add(notification.id);
-        timeoutIds.set(
-          notification.id,
-          window.setTimeout(() => removeToast(notification.id), TOAST_DURATION_MS)
-        );
         showBrowserNotification(notification);
+      });
+
+      // Ao entrar com várias novidades, um aviso resumido em vez de uma pilha cobrindo a tela.
+      const incoming =
+        fresh.length >= GROUP_FROM
+          ? [
+              {
+                id: `grupo-${fresh[0].id}`,
+                title: `${fresh.length} notificações novas`,
+                message: "Abra o sino no topo da tela para ver todas.",
+              },
+            ]
+          : fresh;
+
+      incoming.forEach((toast) => {
+        timeoutIds.set(
+          toast.id,
+          window.setTimeout(() => removeToast(toast.id), TOAST_DURATION_MS)
+        );
       });
 
       saveToastedIds(username, toastedIds);
       setToasts((current) =>
-        [...fresh, ...current.filter((toast) => !fresh.some((item) => item.id === toast.id))].slice(
+        [...incoming, ...current.filter((toast) => !incoming.some((item) => item.id === toast.id))].slice(
           0,
           MAX_VISIBLE_TOASTS
         )

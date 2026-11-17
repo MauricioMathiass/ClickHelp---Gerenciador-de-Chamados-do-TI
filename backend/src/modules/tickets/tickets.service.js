@@ -5,6 +5,7 @@ import { ROLE_ADMIN, TI_ROLES } from "../../shared/roles.js";
 import { sendNewTicketEmail } from "../notifications/email.service.js";
 import { createNotification } from "../notifications/notifications.service.js";
 import { getSettings, getWorkCalendar, PRIORITIES } from "../settings/settings.service.js";
+import { listUsers } from "../users/users.service.js";
 import { buildSlaLimitFromDate } from "./sla.js";
 import {
   ADMIN_ONLY_VISIBILITY,
@@ -24,6 +25,9 @@ const normalizeText = (value) =>
   String(value ?? "")
     .trim()
     .toLowerCase();
+
+/** 42 -> "#0042" (o mesmo formato da tela). */
+const formatProtocolo = (numero) => (Number.isInteger(numero) ? `#${String(numero).padStart(4, "0")}` : "");
 
 /** Linha do banco → chamado da API (campos de fechamento só quando existem). */
 const fromRow = (row) => {
@@ -119,8 +123,19 @@ const canSeeChamado = (chamado, user) => {
   return normalizeText(chamado.solicitante) === normalizeText(user.username);
 };
 
+/** Acrescenta o nome de quem abriu cada chamado (o chamado guarda só o login). */
+const withRequesterNames = async (chamados) => {
+  const names = new Map((await listUsers()).map((item) => [Number(item.id), item.name]));
+  return chamados.map((chamado) => ({
+    ...chamado,
+    solicitanteNome: names.get(Number(chamado.userId)) ?? null,
+  }));
+};
+
 /** Lista os chamados que o usuário autenticado pode ver (mais novos primeiro). */
-export const listChamados = async (user) => {
+export const listChamados = async (user) => withRequesterNames(await listVisibleChamados(user));
+
+const listVisibleChamados = async (user) => {
   if (user.role === ROLE_ADMIN) {
     return (await query("SELECT * FROM chamados ORDER BY data_criacao DESC")).map(fromRow);
   }
@@ -190,7 +205,7 @@ export const createChamado = async (data, user) => {
   await notifySafely({
     type: "solicitacao-enviada",
     title: "Solicitação enviada",
-    message: `Seu chamado "${assunto}" foi registrado com sucesso no ${settings.branding.appName}.`,
+    message: `Seu chamado ${formatProtocolo(chamado.numero)} "${assunto}" foi registrado. A equipe de TI responde por aqui.`,
     recipients: { usernames: [user.username] },
     context: { chamadoId: chamado.id },
   });
@@ -198,7 +213,7 @@ export const createChamado = async (data, user) => {
   await notifySafely({
     type: "novo-chamado-ti",
     title: "Nova solicitação recebida",
-    message: `${user.username} abriu o chamado "${assunto}" e aguarda atendimento da equipe de TI.`,
+    message: `${user.name || user.username} abriu o chamado ${formatProtocolo(chamado.numero)} "${assunto}" e aguarda atendimento.`,
     recipients: { roles: TI_ROLES, excludeUsernames: [user.username] },
     context: { chamadoId: chamado.id },
   });
@@ -304,7 +319,10 @@ export const updateChamado = async (id, data, user) => {
     await notifySafely({
       type: "status-chamado-atualizado",
       title: `Chamado ${updated.status === STATUS_FECHADO ? "fechado" : "em andamento"}`,
-      message: `Sua solicitação "${updated.assunto}" foi atualizada para "${updated.status}".`,
+      message:
+        updated.status === STATUS_FECHADO
+          ? `Sua solicitação ${formatProtocolo(updated.numero)} "${updated.assunto}" foi fechada. Veja a resposta da TI em Minhas solicitações.`
+          : `A equipe de TI começou a atender sua solicitação ${formatProtocolo(updated.numero)} "${updated.assunto}".`,
       recipients: { usernames: [updated.solicitante] },
       context: { chamadoId: updated.id, status: updated.status },
     });

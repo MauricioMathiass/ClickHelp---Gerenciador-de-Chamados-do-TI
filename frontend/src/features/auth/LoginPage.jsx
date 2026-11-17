@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { getRememberedLogin, loginUser } from "./authService";
+import { COLD_START_MESSAGE, useSlowFlag } from "../../shared/hooks/useSlowFlag";
 import AuthTicket from "./AuthTicket";
 
 const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
@@ -10,6 +11,7 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
   const [rememberMe, setRememberMe] = useState(() => getRememberedLogin()?.rememberMe ?? true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const isSlow = useSlowFlag(isSubmitting);
 
   const togglePassword = () => setShowPassword((current) => !current);
 
@@ -117,6 +119,10 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
         <button type="submit" className="login-submit" disabled={isSubmitting}>
           {isSubmitting ? "Entrando..." : "Entrar"}
         </button>
+
+        <p className="login-slow" role="status">
+          {isSlow ? COLD_START_MESSAGE : ""}
+        </p>
       </form>
     </AuthTicket>
   );

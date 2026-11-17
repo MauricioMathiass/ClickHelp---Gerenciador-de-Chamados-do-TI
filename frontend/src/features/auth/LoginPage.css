@@ -211,6 +211,18 @@
   cursor: wait;
 }
 
+/* Espera longa no login: o servidor gratuito está acordando. */
+.login-slow {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.login-slow:empty {
+  margin: 0;
+}
+
 /* ---------- Estreito: canhoto em cima, em linha com a marca ---------- */
 
 @container paper-ticket (max-width: 640px) {

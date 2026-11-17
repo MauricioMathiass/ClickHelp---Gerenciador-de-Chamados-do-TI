@@ -121,5 +121,8 @@ export const getClosedSeal = (chamado) => {
     : { tone: "none", label: "Fechado" };
 };
 
+/** Nome de quem abriu o chamado; o login só quando o nome não veio (dados antigos). */
+export const requesterLabel = (chamado) => chamado.solicitanteNome || chamado.solicitante || "";
+
 /** Junta só as partes preenchidas: "Matriz · Impressoras · aberto há 2 h". */
 export const joinMeta = (...parts) => parts.filter(Boolean).join(" · ");

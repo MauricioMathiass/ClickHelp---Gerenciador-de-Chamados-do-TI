@@ -105,6 +105,12 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 22%, transparent);
 }
 
+/* Campo que faltou preencher ao enviar. */
+.request-body .input[aria-invalid="true"],
+.request-body .custom-select.form-select .custom-select-trigger[aria-invalid="true"] {
+  border-color: color-mix(in srgb, var(--color-danger) 60%, transparent);
+}
+
 .request-body .feedback {
   text-align: left;
 }

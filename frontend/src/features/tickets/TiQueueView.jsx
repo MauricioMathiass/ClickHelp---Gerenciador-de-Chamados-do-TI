@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import Select from "../../shared/components/Select";
+import { COLD_START_MESSAGE, useSlowFlag } from "../../shared/hooks/useSlowFlag";
 import { formatDateTime, statusClassName } from "../../shared/utils/format";
-import { compareByDeadline, formatProtocolo, formatSpan, getSlaClock, joinMeta } from "./ticketDisplay";
+import {
+  compareByDeadline,
+  formatProtocolo,
+  formatSpan,
+  getSlaClock,
+  joinMeta,
+  requesterLabel,
+} from "./ticketDisplay";
 import TicketStrip from "./TicketStrip";
 import "./queue.css";
 
@@ -25,7 +33,6 @@ const PRIORITY_FILTERS = [
 const CLOCK_TICK_MS = 60 * 1000;
 /** Tempo para desfazer o fechamento de um chamado. */
 const UNDO_MS = 10 * 1000;
-const SLOW_LOAD_MS = 6000;
 
 /** Hora atual, atualizada a cada minuto, para o relógio do SLA andar sozinho. */
 const useNow = () => {
@@ -37,25 +44,6 @@ const useNow = () => {
   }, []);
 
   return now;
-};
-
-/** Depois de alguns segundos carregando, avisa da partida a frio do servidor. */
-const useSlowFlag = (isActive) => {
-  const [isSlow, setIsSlow] = useState(false);
-
-  useEffect(() => {
-    if (!isActive) {
-      return undefined;
-    }
-
-    const id = window.setTimeout(() => setIsSlow(true), SLOW_LOAD_MS);
-    return () => {
-      window.clearTimeout(id);
-      setIsSlow(false);
-    };
-  }, [isActive]);
-
-  return isSlow;
 };
 
 const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
@@ -120,9 +108,7 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
           String(item.assunto ?? "")
             .toLowerCase()
             .includes(term) ||
-          String(item.solicitante ?? "")
-            .toLowerCase()
-            .includes(term) ||
+          `${item.solicitante ?? ""} ${item.solicitanteNome ?? ""}`.toLowerCase().includes(term) ||
           formatProtocolo(item.numero).includes(term))
     );
   }, [abertos, statusFilter, priorityFilter, search]);
@@ -307,11 +293,7 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
       {isLoading ? (
         <div className="view-loading" role="status">
           <p>Carregando a fila...</p>
-          {isSlow ? (
-            <p className="view-loading-hint">
-              O servidor está acordando depois de um tempo parado. Isso pode levar até 1 minuto.
-            </p>
-          ) : null}
+          {isSlow ? <p className="view-loading-hint">{COLD_START_MESSAGE}</p> : null}
         </div>
       ) : null}
 
@@ -347,7 +329,7 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
                 chamado={item}
                 tone={item.clock.tone}
                 stubNote={item.clock.label}
-                meta={joinMeta(item.solicitante, item.local, item.categoria, age)}
+                meta={joinMeta(requesterLabel(item), item.local, item.categoria, age)}
                 aside={<span className={`ticket-status ${statusClassName(item.status)}`}>{item.status}</span>}
                 isExpanded={expandedId === item.id}
                 onToggle={toggle(item.id)}

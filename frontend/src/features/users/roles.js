@@ -11,3 +11,6 @@ export const ROLE_OPTIONS = [
   { value: ROLE_ANALISTA, label: "Analista de TI" },
   { value: ROLE_ADMIN, label: "Administrador" },
 ];
+
+/** Rótulo do perfil para exibir ("Usuario" -> "Usuário"). */
+export const formatRole = (role) => ROLE_OPTIONS.find((option) => option.value === role)?.label ?? role ?? "";

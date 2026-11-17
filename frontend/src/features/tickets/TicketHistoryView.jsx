@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { formatDateTime } from "../../shared/utils/format";
-import { getClosedSeal, joinMeta } from "./ticketDisplay";
+import { getClosedSeal, joinMeta, requesterLabel } from "./ticketDisplay";
 import TicketStrip from "./TicketStrip";
 import "./queue.css";
 
@@ -92,7 +92,7 @@ function TicketHistoryView({ chamados, currentUsername, isLoading }) {
                 tone={seal.tone}
                 stubNote={seal.label}
                 meta={joinMeta(
-                  item.solicitante,
+                  requesterLabel(item),
                   closedBy ? `fechado por ${closedBy}` : "",
                   formatDateTime(item.dataFechamento ?? item.dataAtualizacao)
                 )}

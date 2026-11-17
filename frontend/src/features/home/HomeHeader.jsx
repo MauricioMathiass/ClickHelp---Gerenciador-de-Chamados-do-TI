@@ -2,11 +2,12 @@ import { FaArrowRightFromBracket, FaBell } from "react-icons/fa6";
 import BrandMark from "../../shared/components/BrandMark";
 import BrandName from "../../shared/components/BrandName";
 import { useSettings } from "../settings/useSettings";
+import { formatRole } from "../users/roles";
 
 /** Barra do topo: marca da empresa, notificações, usuário conectado e Sair. */
 function HomeHeader({ user, unreadCount, onOpenNotifications, onLogout }) {
   const { branding } = useSettings();
-  const roleLine = [user?.role, user?.department].filter(Boolean).join(", ");
+  const roleLine = [formatRole(user?.role), user?.department].filter(Boolean).join(", ");
 
   return (
     <header className="home-top">
