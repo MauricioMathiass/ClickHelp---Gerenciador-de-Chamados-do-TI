@@ -193,7 +193,7 @@
   border: none;
   border-radius: 10px;
   background: var(--brand-gradient);
-  color: #ffffff;
+  color: var(--brand-on);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;

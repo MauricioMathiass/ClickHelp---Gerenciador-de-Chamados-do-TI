@@ -339,7 +339,7 @@
   margin-top: 4px;
   border-radius: 7px;
   background: var(--brand-gradient);
-  color: #ffffff;
+  color: var(--brand-on);
   font-size: 13px;
   font-weight: 700;
 }

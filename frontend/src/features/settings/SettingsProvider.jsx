@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getApiErrorMessage } from "../../shared/services/api";
+import { pickTextOnBrand } from "../../shared/utils/color";
 import { getPublicSettings, getSettings, saveSettings } from "./settingsService";
 import { SettingsContext } from "./useSettings";
 
@@ -18,6 +19,7 @@ const applyBranding = (branding) => {
   const root = document.documentElement;
   root.style.setProperty("--brand-primary", branding.primaryColor);
   root.style.setProperty("--brand-secondary", branding.secondaryColor);
+  root.style.setProperty("--brand-on", pickTextOnBrand(branding.primaryColor, branding.secondaryColor).color);
   document.title = branding.companyName ? `${branding.appName} | ${branding.companyName}` : branding.appName;
 };
 

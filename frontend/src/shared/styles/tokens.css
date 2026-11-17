@@ -9,7 +9,9 @@
   --brand-secondary: #1388d1;
   --brand-light: color-mix(in srgb, var(--brand-primary) 55%, #ffffff);
   --brand-gradient: linear-gradient(180deg, var(--brand-primary), var(--brand-secondary));
-  --brand-shadow: 0 18px 36px color-mix(in srgb, var(--brand-secondary) 24%, transparent);
+  /* Texto sobre a cor da marca (botões principais): escuro ou claro, o que tiver
+     mais contraste com as duas cores. Recalculado em tempo de execução. */
+  --brand-on: #04131f;
 
   /* Fundo da página */
   --page-bg-1: #071322;
@@ -43,7 +45,7 @@
   --text-strong: #ffffff;
   --text: rgba(227, 242, 255, 0.86);
   --text-muted: rgba(227, 242, 255, 0.72);
-  --text-placeholder: rgba(210, 230, 248, 0.4);
+  --text-placeholder: rgba(210, 230, 248, 0.6);
 
   /* Estados */
   --color-success: #5de2c0;

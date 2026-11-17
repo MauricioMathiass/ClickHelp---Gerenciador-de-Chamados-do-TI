@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Feedback from "../../shared/components/Feedback";
 import BrandName from "../../shared/components/BrandName";
 import Modal from "../../shared/components/Modal";
+import { formatRatio, MIN_TEXT_CONTRAST, pickTextOnBrand } from "../../shared/utils/color";
 import ListEditor from "./ListEditor";
 import { useSettings } from "./useSettings";
 import "./settings.css";
@@ -75,6 +76,7 @@ function BrandingPreview({ branding }) {
     "--brand-secondary": secondaryColor,
     "--brand-light": `color-mix(in srgb, ${primaryColor} 55%, #ffffff)`,
     "--brand-gradient": `linear-gradient(180deg, ${primaryColor}, ${secondaryColor})`,
+    "--brand-on": pickTextOnBrand(primaryColor, secondaryColor).color,
   };
 
   return (
@@ -112,6 +114,8 @@ function BrandingTab({ draft, update }) {
   const [logoError, setLogoError] = useState("");
   const branding = draft.branding;
   const set = (field) => (event) => update((next) => (next.branding[field] = event.target.value));
+  // Como o texto dos botões vai ficar sobre essas cores (o mesmo cálculo da tela real).
+  const buttonContrast = pickTextOnBrand(branding.primaryColor, branding.secondaryColor);
 
   const handleLogo = (event) => {
     const file = event.target.files?.[0];
@@ -181,6 +185,17 @@ function BrandingTab({ draft, update }) {
               <span>Secundária</span>
             </label>
           </div>
+          {buttonContrast.ratio < MIN_TEXT_CONTRAST ? (
+            <p className="field-hint field-hint-warning" role="status">
+              Com essas cores, o texto dos botões fica com contraste de {formatRatio(buttonContrast.ratio)},
+              abaixo do mínimo de 4,5:1 para leitura confortável. Escolha uma cor mais clara ou mais escura.
+            </p>
+          ) : (
+            <p className="field-hint">
+              O texto dos botões fica {buttonContrast.color === "#ffffff" ? "branco" : "escuro"}, com
+              contraste de {formatRatio(buttonContrast.ratio)}.
+            </p>
+          )}
         </div>
 
         <div className="field">
@@ -388,6 +403,14 @@ function SettingsModal({ isOpen = true, onClose }) {
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", text: "" });
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const keepEditingRef = useRef(null);
+
+  // A pergunta de descartar recebe o foco, para quem usa o teclado responder na hora.
+  useEffect(() => {
+    if (confirmDiscard) {
+      keepEditingRef.current?.focus();
+    }
+  }, [confirmDiscard]);
 
   // Ao abrir, recarrega do servidor e começa a edição a partir dele.
   useEffect(() => {
@@ -454,7 +477,7 @@ function SettingsModal({ isOpen = true, onClose }) {
               type="button"
               className="btn btn-ghost"
               onClick={() => setConfirmDiscard(false)}
-              autoFocus
+              ref={keepEditingRef}
             >
               Continuar editando
             </button>

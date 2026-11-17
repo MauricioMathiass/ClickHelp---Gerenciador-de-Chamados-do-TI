@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { FaXmark } from "react-icons/fa6";
 import "./NotificationToasts.css";
 import { readToastedIds, saveToastedIds, subscribeNotifications } from "./notificationsService";
 
@@ -140,7 +141,7 @@ function NotificationToasts({ session }) {
             onClick={() => removeToast(toast.id)}
             aria-label="Fechar notificação"
           >
-            x
+            <FaXmark aria-hidden="true" />
           </button>
         </article>
       ))}

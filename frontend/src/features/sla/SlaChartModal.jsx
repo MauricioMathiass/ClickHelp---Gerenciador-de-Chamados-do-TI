@@ -45,7 +45,6 @@ function SlaChartModal({ isOpen, onClose, chamados }) {
     { label: "Fechados no prazo", value: stats.atendidos },
     { label: "Em aberto no prazo", value: stats.emAberto },
     { label: "Violados", value: stats.violados },
-    { label: "Eficiência", value: `${stats.eficiencia}%` },
   ];
 
   return (
@@ -76,7 +75,7 @@ function SlaChartModal({ isOpen, onClose, chamados }) {
                 <div>
                   <strong>{item.label}</strong>
                   <p>
-                    {stats[item.key]} chamado(s) - {stats[item.pct]}%
+                    {stats[item.key] === 1 ? "1 chamado" : `${stats[item.key]} chamados`} · {stats[item.pct]}%
                   </p>
                 </div>
               </div>

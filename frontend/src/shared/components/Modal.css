@@ -29,6 +29,11 @@
     inset 0 1px 0 var(--surface-3);
 }
 
+/* O cartão recebe o foco ao abrir (para o Esc e o leitor de tela), sem contorno: o foco visível fica nos controles. */
+.modal-card:focus {
+  outline: none;
+}
+
 .modal-size-wide {
   width: min(100%, 1040px);
 }
@@ -79,7 +84,12 @@
   }
 
   .modal-card {
-    border-radius: 22px;
+    border-radius: 18px;
+  }
+
+  /* Títulos longos ("Minhas solicitações") cabem em uma linha ao lado do Fechar. */
+  .modal-header h2 {
+    font-size: 21px;
   }
 
   .modal-header,
