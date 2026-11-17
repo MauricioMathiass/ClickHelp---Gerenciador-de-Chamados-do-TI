@@ -387,6 +387,7 @@ function SettingsModal({ isOpen = true, onClose }) {
   const [draft, setDraft] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", text: "" });
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   // Ao abrir, recarrega do servidor e começa a edição a partir dele.
   useEffect(() => {
@@ -422,33 +423,64 @@ function SettingsModal({ isOpen = true, onClose }) {
   const hasChanges = draft && settings && JSON.stringify(draft) !== JSON.stringify(settings);
   const tabProps = { draft, update };
 
+  // Fechar (botão, Esc ou clique fora) com alterações pendentes pede confirmação antes de descartar.
+  const requestClose = () => {
+    if (hasChanges && !isSaving) {
+      setConfirmDiscard(true);
+      return;
+    }
+
+    onClose();
+  };
+
   const activeTab = TABS.find((item) => item.value === tab);
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={requestClose}
       title="Configurações"
       size="wide"
       className="settings-modal"
       actions={
-        <div className="settings-actions">
-          {feedback.text ? (
-            <Feedback type={feedback.type}>{feedback.text}</Feedback>
-          ) : (
-            <p className="settings-status" aria-live="polite">
-              {hasChanges ? "Há alterações não salvas." : ""}
-            </p>
-          )}
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={!hasChanges || isSaving}
-            onClick={handleSave}
+        confirmDiscard ? (
+          <div
+            className="settings-actions settings-discard"
+            role="alertdialog"
+            aria-label="Descartar alterações"
           >
-            {isSaving ? "Salvando..." : "Salvar alterações"}
-          </button>
-        </div>
+            <p className="settings-status">As alterações não salvas serão perdidas. Descartar e fechar?</p>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setConfirmDiscard(false)}
+              autoFocus
+            >
+              Continuar editando
+            </button>
+            <button type="button" className="btn btn-danger" onClick={onClose}>
+              Descartar e fechar
+            </button>
+          </div>
+        ) : (
+          <div className="settings-actions">
+            {feedback.text ? (
+              <Feedback type={feedback.type}>{feedback.text}</Feedback>
+            ) : (
+              <p className="settings-status" aria-live="polite">
+                {hasChanges ? "Há alterações não salvas." : ""}
+              </p>
+            )}
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!hasChanges || isSaving}
+              onClick={handleSave}
+            >
+              {isSaving ? "Salvando..." : "Salvar alterações"}
+            </button>
+          </div>
+        )
       }
     >
       <div className="settings-layout">

@@ -214,6 +214,13 @@
   color: var(--color-warning);
 }
 
+/* Pergunta antes de fechar com alterações não salvas. */
+.settings-discard .settings-status {
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 /* ---------- Empresa: campos + prévia ---------- */
 
 .settings-branding {

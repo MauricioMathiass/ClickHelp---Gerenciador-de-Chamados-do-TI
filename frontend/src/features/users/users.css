@@ -19,9 +19,45 @@
 
 .user-card-reset {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 10px;
   margin-top: 12px;
+}
+
+/* Confirmação dentro do cartão, antes de mudar o perfil ou desativar. */
+.user-card-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.user-card-confirm.is-danger {
+  border-color: color-mix(in srgb, var(--color-danger) 32%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+}
+
+.user-card-confirm p {
+  flex: 1 1 320px;
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.user-card-confirm strong {
+  color: var(--text-strong);
+}
+
+.user-card-confirm-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .user-card-reset .input {

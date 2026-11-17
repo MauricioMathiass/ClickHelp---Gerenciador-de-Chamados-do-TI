@@ -71,17 +71,35 @@
   height: 44px;
 }
 
+/* Aviso da última ação (salvar, fechar, reabrir), com "Desfazer" logo depois de fechar. */
 .queue-announcement {
-  min-height: 20px;
-  margin: -4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+  margin: -6px 0 -4px;
+}
+
+.queue-announcement p {
+  margin: 0;
   color: var(--color-success-text);
   font-size: 13px;
   font-weight: 600;
 }
 
-.queue-announcement:empty {
+.queue-announcement.tone-late p,
+.queue-announcement.tone-error p {
+  color: var(--color-danger-text);
+}
+
+/* Sem aviso, a área não ocupa espaço (mas continua no DOM para leitores de tela). */
+.queue-announcement:has(p:empty):not(:has(button)) {
   min-height: 0;
   margin: 0;
+}
+
+.queue-announcement .btn-sm {
+  height: 32px;
 }
 
 /* ---------- Atendimento dentro da tira aberta ---------- */

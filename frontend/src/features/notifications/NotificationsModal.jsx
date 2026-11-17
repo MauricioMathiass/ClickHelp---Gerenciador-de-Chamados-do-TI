@@ -45,8 +45,8 @@ function NotificationsModal({ isOpen, onClose, notifications, archivedNotificati
           ) : null}
 
           {!showHistory && notifications.length ? (
-            <button type="button" className="btn btn-primary" onClick={onClear}>
-              Limpar notificações
+            <button type="button" className="btn btn-ghost" onClick={onClear}>
+              Mover para o histórico
             </button>
           ) : null}
         </div>

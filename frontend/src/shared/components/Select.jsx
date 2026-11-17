@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./Select.css";
 
+/**
+ * Seletor com lista própria. Sem um <label htmlFor={id}>, passe `ariaLabel`
+ * ("Perfil de Carla Mendes"): o leitor de tela ouve "Perfil de Carla Mendes: Usuário".
+ */
 function Select({
+  ariaLabel,
   className = "",
   disabled = false,
   id,
@@ -81,6 +86,7 @@ function Select({
         onClick={handleToggle}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
+        aria-label={ariaLabel ? `${ariaLabel}: ${selectedOption?.label ?? placeholder}` : undefined}
         disabled={disabled}
       >
         <span className={`custom-select-value ${selectedOption ? "has-value" : ""}`}>
@@ -90,7 +96,7 @@ function Select({
       </button>
 
       {isOpen ? (
-        <div className="custom-select-menu" role="listbox">
+        <div className="custom-select-menu" role="listbox" aria-label={ariaLabel}>
           {options.map((option) => {
             const isSelected = option.value === value;
 

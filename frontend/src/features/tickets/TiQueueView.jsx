@@ -23,6 +23,8 @@ const PRIORITY_FILTERS = [
 ];
 
 const CLOCK_TICK_MS = 60 * 1000;
+/** Tempo para desfazer o fechamento de um chamado. */
+const UNDO_MS = 10 * 1000;
 const SLOW_LOAD_MS = 6000;
 
 /** Hora atual, atualizada a cada minuto, para o relógio do SLA andar sozinho. */
@@ -72,7 +74,22 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
   const [drafts, setDrafts] = useState({});
   const [errors, setErrors] = useState({});
   const [savingId, setSavingId] = useState(null);
-  const [announcement, setAnnouncement] = useState("");
+  // Aviso da última ação: { text, tone: "ok" | "late" | "error", undo?: { chamado, previousStatus } }.
+  const [announcement, setAnnouncement] = useState(null);
+  const [isUndoing, setIsUndoing] = useState(false);
+
+  // O "Desfazer" some depois de alguns segundos; o texto do aviso continua.
+  useEffect(() => {
+    if (!announcement?.undo) {
+      return undefined;
+    }
+
+    const id = window.setTimeout(
+      () => setAnnouncement((current) => (current === announcement ? { ...current, undo: null } : current)),
+      UNDO_MS
+    );
+    return () => window.clearTimeout(id);
+  }, [announcement]);
 
   const abertos = useMemo(
     () =>
@@ -132,7 +149,7 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
       delete next[chamado.id];
       return next;
     });
-    setAnnouncement(successMessage);
+    setAnnouncement({ text: successMessage, tone: "ok" });
     return true;
   };
 
@@ -167,16 +184,43 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
       return;
     }
 
-    const lateNote = chamado.clock.tone === "late" ? " fora do prazo" : "";
+    const protocolo = formatProtocolo(chamado.numero);
     const closed = await submit(
       chamado,
       { resposta, status: STATUS_FECHADO },
-      `Chamado ${formatProtocolo(chamado.numero)} fechado${lateNote}.`
+      `Chamado ${protocolo} fechado.`
     );
 
-    if (closed) {
-      setExpandedId(null);
+    if (!closed) {
+      return;
     }
+
+    // O servidor marca o SLA como violado quando o fechamento passa do prazo; o relógio diz o mesmo.
+    const slaNote = { late: " · fora do prazo", none: "" }[chamado.clock.tone] ?? " · dentro do prazo";
+    setExpandedId(null);
+    setAnnouncement({
+      text: `Chamado ${protocolo} fechado${slaNote}.`,
+      tone: chamado.clock.tone === "late" ? "late" : "ok",
+      undo: { chamado, previousStatus: chamado.status },
+    });
+  };
+
+  /** Reabre o chamado que acabou de ser fechado, no status em que estava. */
+  const handleUndo = async () => {
+    const { chamado, previousStatus } = announcement.undo;
+    const protocolo = formatProtocolo(chamado.numero);
+
+    setIsUndoing(true);
+    const errorMessage = await onUpdateChamado(chamado.id, { status: previousStatus });
+    setIsUndoing(false);
+
+    if (errorMessage) {
+      setAnnouncement({ text: `Não foi possível reabrir ${protocolo}. ${errorMessage}`, tone: "error" });
+      return;
+    }
+
+    setAnnouncement({ text: `Chamado ${protocolo} reaberto.`, tone: "ok" });
+    setExpandedId(chamado.id);
   };
 
   const clearFilters = () => {
@@ -251,9 +295,14 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
         </div>
       </div>
 
-      <p className="queue-announcement" role="status">
-        {announcement}
-      </p>
+      <div className={`queue-announcement tone-${announcement?.tone ?? "ok"}`}>
+        <p role="status">{announcement?.text}</p>
+        {announcement?.undo ? (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={handleUndo} disabled={isUndoing}>
+            {isUndoing ? "Reabrindo..." : "Desfazer"}
+          </button>
+        ) : null}
+      </div>
 
       {isLoading ? (
         <div className="view-loading" role="status">
