@@ -174,6 +174,16 @@ describe("chamados", () => {
     assert.equal(data.chamado.solicitante, "maria.silva");
   });
 
+  test("cada chamado recebe um protocolo sequencial", async () => {
+    const primeiro = (await api("POST", "/chamados", { token: mariaToken, body: novoChamado("Protocolo A") }))
+      .data.chamado;
+    const segundo = (await api("POST", "/chamados", { token: mariaToken, body: novoChamado("Protocolo B") }))
+      .data.chamado;
+
+    assert.ok(Number.isInteger(primeiro.numero) && primeiro.numero > 0);
+    assert.equal(segundo.numero, primeiro.numero + 1);
+  });
+
   test("valida prioridade e campos obrigatorios", async () => {
     const semCampos = await api("POST", "/chamados", { token: mariaToken, body: {} });
     assert.equal(semCampos.status, 400);

@@ -51,6 +51,8 @@
   --color-danger: #ff7d7d;
   --color-danger-text: #ffd5d5;
   --color-warning: #ffe3a1;
+  /* Âmbar com mais cor, para tingir superfícies (o canhoto de "vence logo"). */
+  --color-warning-strong: #f0a63a;
   --color-info: #7da7ff;
 
   /* Formas */

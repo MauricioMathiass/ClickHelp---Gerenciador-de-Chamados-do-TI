@@ -4,16 +4,6 @@
   overflow: auto;
 }
 
-/* Abas simples (ex.: filtro do histórico). */
-
-.sla-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
 .sla-filters {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -38,6 +28,13 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.sla-table .sla-protocol {
+  color: var(--text-muted);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .sla-good {

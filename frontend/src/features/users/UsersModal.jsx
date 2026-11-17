@@ -7,6 +7,7 @@ import { useSettings } from "../settings/useSettings";
 import NewUserModal from "./NewUserModal";
 import { ROLE_OPTIONS } from "./roles";
 import { listUsers, updateUser } from "./usersService";
+import "../tickets/tickets.css";
 import "./users.css";
 
 const MIN_PASSWORD_LENGTH = 6;

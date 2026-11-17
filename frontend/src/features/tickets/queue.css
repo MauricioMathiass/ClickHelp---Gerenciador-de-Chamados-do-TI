@@ -1,0 +1,142 @@
+/* Telas do TI no corpo da página (Fila, Histórico, Relatório de SLA). */
+
+.view {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.view-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.view-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.view-summary {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-late {
+  color: var(--color-danger-text);
+  font-weight: 700;
+}
+
+.view-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.view-loading {
+  padding: 22px 0;
+  color: var(--text);
+}
+
+.view-loading p {
+  margin: 0;
+}
+
+.view-loading .view-loading-hint {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ---------- Filtros da fila ---------- */
+
+.queue-toolbar {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 220px) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.queue-toolbar .segmented-control {
+  margin-bottom: 0;
+}
+
+.queue-search .input {
+  height: 44px;
+}
+
+.queue-announcement {
+  min-height: 20px;
+  margin: -4px 0 0;
+  color: var(--color-success-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.queue-announcement:empty {
+  min-height: 0;
+  margin: 0;
+}
+
+/* ---------- Atendimento dentro da tira aberta ---------- */
+
+.queue-work {
+  display: grid;
+  gap: 14px;
+  max-width: 72ch;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.queue-status-switch {
+  justify-self: start;
+  margin-bottom: 0;
+}
+
+.queue-work textarea.input {
+  min-height: 104px;
+}
+
+.queue-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.queue-empty h2,
+.view .empty-state h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.view .empty-state .btn {
+  margin-top: 4px;
+}
+
+@media (max-width: 760px) {
+  .queue-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Os três filtros de status dividem a largura em vez de rolar. */
+  .queue-toolbar .segmented-control {
+    display: flex;
+  }
+
+  .queue-toolbar .segmented-control button {
+    flex: 1;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+
+  .view-title {
+    font-size: 22px;
+  }
+}

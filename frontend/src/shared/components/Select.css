@@ -35,7 +35,12 @@
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-primary) 12%, transparent);
 }
 
+/* Texto longo ("Selecione a prioridade") é cortado com reticências em vez de vazar do campo. */
 .custom-select-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: rgba(210, 230, 248, 0.66);
   font-weight: 500;
 }

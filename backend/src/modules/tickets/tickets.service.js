@@ -29,6 +29,7 @@ const normalizeText = (value) =>
 const fromRow = (row) => {
   const chamado = {
     id: row.id,
+    numero: row.numero,
     assunto: row.assunto,
     solicitante: row.solicitante,
     local: row.local,

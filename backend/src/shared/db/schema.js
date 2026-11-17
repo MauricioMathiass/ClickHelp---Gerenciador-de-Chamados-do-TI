@@ -43,6 +43,28 @@ CREATE TABLE IF NOT EXISTS chamados (
 CREATE INDEX IF NOT EXISTS chamados_data_criacao_idx ON chamados (data_criacao DESC);
 CREATE INDEX IF NOT EXISTS chamados_solicitante_idx ON chamados (LOWER(solicitante));
 
+-- Protocolo do chamado (#0042): número sequencial que a equipe consegue falar.
+-- Chamados antigos recebem o número pela ordem de criação; a sequência
+-- continua do maior número existente.
+CREATE SEQUENCE IF NOT EXISTS chamados_numero_seq;
+ALTER TABLE chamados ADD COLUMN IF NOT EXISTS numero INTEGER;
+
+UPDATE chamados AS c
+SET numero = ordered.next_numero
+FROM (
+  SELECT id,
+         (SELECT COALESCE(MAX(numero), 0) FROM chamados)
+           + ROW_NUMBER() OVER (ORDER BY data_criacao, id) AS next_numero
+  FROM chamados
+  WHERE numero IS NULL
+) AS ordered
+WHERE c.id = ordered.id;
+
+SELECT setval('chamados_numero_seq', COALESCE((SELECT MAX(numero) FROM chamados), 0) + 1, false);
+ALTER TABLE chamados ALTER COLUMN numero SET DEFAULT nextval('chamados_numero_seq');
+ALTER TABLE chamados ALTER COLUMN numero SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS chamados_numero_idx ON chamados (numero);
+
 CREATE TABLE IF NOT EXISTS notifications (
   id                  UUID PRIMARY KEY,
   type                TEXT NOT NULL,

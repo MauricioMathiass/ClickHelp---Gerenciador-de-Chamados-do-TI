@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { createElement, useState } from "react";
 import Feedback from "../../shared/components/Feedback";
 import Select from "../../shared/components/Select";
 import { useSettings } from "../settings/useSettings";
@@ -22,7 +22,7 @@ const toOptions = (items, placeholder) => [
  * Formulário de nova solicitação, no formato de chamado impresso. Locais e categorias vêm das
  * Configurações da empresa. `onSubmit` devolve uma mensagem de erro ou null.
  */
-function TicketForm({ username, onSubmit }) {
+function TicketForm({ username, onSubmit, headingTag = "h1" }) {
   const { catalog, isLoaded, loadError, reload } = useSettings();
   const [form, setForm] = useState(EMPTY_FORM);
   const [isSending, setIsSending] = useState(false);
@@ -75,7 +75,7 @@ function TicketForm({ username, onSubmit }) {
       <form className="paper-ticket request-ticket" onSubmit={handleSubmit} noValidate>
         <div className="paper-ticket-stub request-stub">
           <div>
-            <h1 className="request-title">Nova solicitação</h1>
+            {createElement(headingTag, { className: "request-title" }, "Nova solicitação")}
             <p className="request-intro">
               Conte o que aconteceu. A equipe de TI responde por aqui, e você acompanha em Minhas
               solicitações.
