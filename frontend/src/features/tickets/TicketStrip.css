@@ -208,6 +208,18 @@
   padding: 4px 22px 20px;
 }
 
+/* Aviso dentro da tira aberta (ex.: o prazo passou), antes da descrição. */
+.strip-notice {
+  max-width: 72ch;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-warning-strong) 14%, transparent);
+  color: var(--color-warning);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 .strip-problem {
   max-width: 72ch;
   margin: 0;

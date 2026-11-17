@@ -25,6 +25,17 @@ import "./HomePage.css";
 
 const TICKETS_REFRESH_MS = 30000;
 
+/** Rascunhos de resposta da fila: guardados na aba, para não sumirem ao trocar de tela ou recarregar. */
+const draftsKey = (username) => `clickhelp.drafts.${username}`;
+
+const readDrafts = (username) => {
+  try {
+    return JSON.parse(window.sessionStorage.getItem(draftsKey(username)) ?? "{}") || {};
+  } catch {
+    return {};
+  }
+};
+
 /** Telas do TI no corpo da página (o menu troca entre elas). */
 const VIEWS = {
   QUEUE: "queue",
@@ -58,6 +69,12 @@ function HomePage({ onBack, session }) {
     (item) => String(item.solicitante ?? "").toLowerCase() === username.toLowerCase()
   );
   const { notifications, archived, unreadCount } = notificationsState;
+  const [queueDrafts, setQueueDrafts] = useState(() => readDrafts(username));
+  // Respostas digitadas que ainda não foram salvas (em chamados que continuam abertos).
+  const unsavedDrafts = Object.entries(queueDrafts).filter(([id, text]) => {
+    const chamado = tickets.find((item) => item.id === id);
+    return chamado && chamado.status !== "Fechado" && text.trim() !== (chamado.resposta ?? "").trim();
+  }).length;
   // O Relatório de SLA é só do administrador; se o perfil mudar, volta para a fila.
   const currentView = view === VIEWS.SLA && !isAdmin ? VIEWS.QUEUE : view;
 
@@ -88,6 +105,29 @@ function HomePage({ onBack, session }) {
   }, [refreshTickets, username]);
 
   useEffect(() => subscribeNotifications(setNotificationsState), [username]);
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(draftsKey(username), JSON.stringify(queueDrafts));
+    } catch {
+      // Sem sessionStorage (modo privado restrito): os rascunhos ficam só na memória.
+    }
+  }, [username, queueDrafts]);
+
+  // Fechar a aba com resposta não salva pede confirmação do navegador.
+  useEffect(() => {
+    if (!unsavedDrafts) {
+      return undefined;
+    }
+
+    const warn = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [unsavedDrafts]);
 
   // Ao abrir as notificações, marca todas como lidas (inclusive as que não cabem na lista).
   useEffect(() => {
@@ -120,7 +160,7 @@ function HomePage({ onBack, session }) {
   };
 
   /** Item do menu que troca a tela do TI. */
-  const viewItem = (name, Icon, label) => (
+  const viewItem = (name, Icon, label, note = "") => (
     <button
       type="button"
       className="home-nav-item"
@@ -129,6 +169,7 @@ function HomePage({ onBack, session }) {
     >
       <Icon aria-hidden="true" />
       {label}
+      {note ? <span className="home-nav-note">{note}</span> : null}
     </button>
   );
 
@@ -152,7 +193,14 @@ function HomePage({ onBack, session }) {
       <nav className="home-nav" aria-label="Menu principal">
         {isTeam ? (
           <div className="home-nav-group">
-            {viewItem(VIEWS.QUEUE, FaHeadset, "Fila de atendimento")}
+            {viewItem(
+              VIEWS.QUEUE,
+              FaHeadset,
+              "Fila de atendimento",
+              unsavedDrafts && currentView !== VIEWS.QUEUE
+                ? `${unsavedDrafts} ${unsavedDrafts === 1 ? "resposta não salva" : "respostas não salvas"}`
+                : ""
+            )}
             {viewItem(VIEWS.HISTORY, FaClockRotateLeft, "Histórico")}
             {isAdmin ? viewItem(VIEWS.SLA, FaChartLine, "Relatório de SLA") : null}
           </div>
@@ -177,11 +225,22 @@ function HomePage({ onBack, session }) {
         {!isTeam ? <TicketForm requesterName={user?.name || username} onSubmit={handleCreateTicket} /> : null}
 
         {isTeam && currentView === VIEWS.QUEUE ? (
-          <TiQueueView chamados={tickets} isLoading={!hasLoaded} onUpdateChamado={handleUpdateTicket} />
+          <TiQueueView
+            chamados={tickets}
+            isLoading={!hasLoaded}
+            onUpdateChamado={handleUpdateTicket}
+            drafts={queueDrafts}
+            setDrafts={setQueueDrafts}
+          />
         ) : null}
 
         {isTeam && currentView === VIEWS.HISTORY ? (
-          <TicketHistoryView chamados={tickets} currentUsername={username} isLoading={!hasLoaded} />
+          <TicketHistoryView
+            chamados={tickets}
+            currentUsername={username}
+            isLoading={!hasLoaded}
+            onUpdateChamado={handleUpdateTicket}
+          />
         ) : null}
 
         {isAdmin && currentView === VIEWS.SLA ? <SlaReportView chamados={tickets} /> : null}

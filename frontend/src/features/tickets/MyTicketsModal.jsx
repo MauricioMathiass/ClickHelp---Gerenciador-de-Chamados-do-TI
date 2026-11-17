@@ -4,11 +4,14 @@ import { formatDateTime, statusClassName } from "../../shared/utils/format";
 import { formatDueDay, getClosedSeal, joinMeta } from "./ticketDisplay";
 import TicketStrip from "./TicketStrip";
 
-/** O que o solicitante vê no canhoto: até quando a TI deve responder, ou como terminou. */
-const getRequesterNote = (item) => {
+/**
+ * O que o solicitante vê no canhoto. O atraso aparece com honestidade, mas em
+ * âmbar (não no vermelho de alerta da fila do TI): é um aviso, não um alarme.
+ */
+const getRequesterNote = (item, now = Date.now()) => {
   if (item.status === "Fechado") {
     const seal = getClosedSeal(item);
-    return { tone: "none", label: seal.tone === "late" ? "Fechado fora do prazo" : "Fechado" };
+    return { tone: "none", label: seal.label };
   }
 
   const deadline = new Date(item.dataLimite).getTime();
@@ -17,7 +20,15 @@ const getRequesterNote = (item) => {
     return { tone: "ok", label: "Sem prazo definido" };
   }
 
-  return { tone: "ok", label: `Previsto até ${formatDueDay(deadline)}` };
+  if (deadline <= now) {
+    return {
+      tone: "soon",
+      label: "Passou do prazo",
+      detail: `O prazo previsto era ${formatDueDay(deadline, now)}. A equipe de TI vê o atraso na fila de atendimento.`,
+    };
+  }
+
+  return { tone: "ok", label: `Previsto até ${formatDueDay(deadline, now)}` };
 };
 
 function MyTicketsModal({ isOpen, onClose, solicitacoes }) {
@@ -41,6 +52,8 @@ function MyTicketsModal({ isOpen, onClose, solicitacoes }) {
                 isExpanded={expandedId === item.id}
                 onToggle={() => setExpandedId((current) => (current === item.id ? null : item.id))}
               >
+                {note.detail ? <p className="strip-notice">{note.detail}</p> : null}
+
                 <p className="strip-problem">{item.problema}</p>
 
                 {item.resposta ? (

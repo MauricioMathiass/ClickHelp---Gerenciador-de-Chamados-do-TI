@@ -102,6 +102,36 @@
   height: 32px;
 }
 
+/* Só para leitores de tela (o aviso visível de fechamento fica na própria fila). */
+.queue-announcement.is-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Chamado recém-fechado, no lugar onde estava, com "Desfazer". */
+.strip-closed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 56px;
+  padding: 8px 12px 8px 18px;
+  border: 1px dashed var(--tear-line, rgba(255, 255, 255, 0.22));
+  border-radius: 12px;
+  color: var(--color-success-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.strip-closed-subject {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
 /* ---------- Atendimento dentro da tira aberta ---------- */
 
 .queue-work {

@@ -175,6 +175,16 @@
   color: var(--text-strong);
 }
 
+/* Lembrete no item da fila quando há resposta digitada e não salva. */
+.home-nav-note {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-warning-strong) 22%, transparent);
+  color: var(--color-warning);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 /* Tela atual do TI: fundo firme e um traço na cor da marca embaixo. */
 .home-nav-item[aria-current="page"] {
   background: var(--surface-3);

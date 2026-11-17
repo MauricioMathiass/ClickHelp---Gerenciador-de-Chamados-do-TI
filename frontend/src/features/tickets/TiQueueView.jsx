@@ -32,7 +32,7 @@ const PRIORITY_FILTERS = [
 
 const CLOCK_TICK_MS = 60 * 1000;
 /** Tempo para desfazer o fechamento de um chamado. */
-const UNDO_MS = 10 * 1000;
+const UNDO_MS = 25 * 1000;
 
 /** Hora atual, atualizada a cada minuto, para o relógio do SLA andar sozinho. */
 const useNow = () => {
@@ -52,32 +52,31 @@ const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
  * Fila de atendimento do TI: chamados abertos como tiras do chamado impresso,
  * o prazo mais próximo primeiro. `onUpdateChamado` devolve a mensagem de erro ou null.
  */
-function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
+function TiQueueView({ chamados, isLoading, onUpdateChamado, drafts, setDrafts }) {
   const now = useNow();
   const isSlow = useSlowFlag(isLoading);
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState(null);
-  const [drafts, setDrafts] = useState({});
   const [errors, setErrors] = useState({});
   const [savingId, setSavingId] = useState(null);
-  // Aviso da última ação: { text, tone: "ok" | "late" | "error", undo?: { chamado, previousStatus } }.
+  // Aviso da última ação: { text, tone: "ok" | "late" | "error" }.
   const [announcement, setAnnouncement] = useState(null);
+  // Chamado recém-fechado: fica no lugar dele na fila, com "Desfazer", por alguns segundos.
+  const [recentlyClosed, setRecentlyClosed] = useState(null);
+  const [isUndoPaused, setIsUndoPaused] = useState(false);
   const [isUndoing, setIsUndoing] = useState(false);
 
-  // O "Desfazer" some depois de alguns segundos; o texto do aviso continua.
+  // O prazo do "Desfazer" para enquanto o mouse ou o foco estão nele.
   useEffect(() => {
-    if (!announcement?.undo) {
+    if (!recentlyClosed || isUndoPaused) {
       return undefined;
     }
 
-    const id = window.setTimeout(
-      () => setAnnouncement((current) => (current === announcement ? { ...current, undo: null } : current)),
-      UNDO_MS
-    );
+    const id = window.setTimeout(() => setRecentlyClosed(null), UNDO_MS);
     return () => window.clearTimeout(id);
-  }, [announcement]);
+  }, [recentlyClosed, isUndoPaused]);
 
   const abertos = useMemo(
     () =>
@@ -112,6 +111,17 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
           formatProtocolo(item.numero).includes(term))
     );
   }, [abertos, statusFilter, priorityFilter, search]);
+
+  // A fila com o chamado recém-fechado de volta no lugar onde estava (para o "Desfazer").
+  const rows = useMemo(() => {
+    const closed = recentlyClosed?.chamado;
+
+    if (!closed || visible.some((item) => item.id === closed.id)) {
+      return visible;
+    }
+
+    return [...visible, { ...closed, isRecentlyClosed: true }].sort(compareByDeadline);
+  }, [visible, recentlyClosed]);
 
   const getDraft = (chamado) => drafts[chamado.id] ?? chamado.resposta ?? "";
 
@@ -182,18 +192,18 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
     }
 
     // O servidor marca o SLA como violado quando o fechamento passa do prazo; o relógio diz o mesmo.
-    const slaNote = { late: " · fora do prazo", none: "" }[chamado.clock.tone] ?? " · dentro do prazo";
+    const slaNote = { late: " · com atraso", none: "" }[chamado.clock.tone] ?? " · no prazo";
+    const text = `Chamado ${protocolo} fechado${slaNote}.`;
     setExpandedId(null);
-    setAnnouncement({
-      text: `Chamado ${protocolo} fechado${slaNote}.`,
-      tone: chamado.clock.tone === "late" ? "late" : "ok",
-      undo: { chamado, previousStatus: chamado.status },
-    });
+    setIsUndoPaused(false);
+    setRecentlyClosed({ chamado, previousStatus: chamado.status, text });
+    // O aviso visível fica na própria fila; aqui só o leitor de tela ouve.
+    setAnnouncement({ text: `${text} Dá para desfazer no lugar dele na fila.`, tone: "ok", srOnly: true });
   };
 
   /** Reabre o chamado que acabou de ser fechado, no status em que estava. */
   const handleUndo = async () => {
-    const { chamado, previousStatus } = announcement.undo;
+    const { chamado, previousStatus } = recentlyClosed;
     const protocolo = formatProtocolo(chamado.numero);
 
     setIsUndoing(true);
@@ -205,6 +215,7 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
       return;
     }
 
+    setRecentlyClosed(null);
     setAnnouncement({ text: `Chamado ${protocolo} reaberto.`, tone: "ok" });
     setExpandedId(chamado.id);
   };
@@ -281,13 +292,10 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
         </div>
       </div>
 
-      <div className={`queue-announcement tone-${announcement?.tone ?? "ok"}`}>
+      <div
+        className={`queue-announcement tone-${announcement?.tone ?? "ok"} ${announcement?.srOnly ? "is-sr-only" : ""}`}
+      >
         <p role="status">{announcement?.text}</p>
-        {announcement?.undo ? (
-          <button type="button" className="btn btn-ghost btn-sm" onClick={handleUndo} disabled={isUndoing}>
-            {isUndoing ? "Reabrindo..." : "Desfazer"}
-          </button>
-        ) : null}
       </div>
 
       {isLoading ? (
@@ -297,14 +305,14 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
         </div>
       ) : null}
 
-      {!isLoading && !abertos.length ? (
+      {!isLoading && !abertos.length && !recentlyClosed ? (
         <div className="empty-state queue-empty">
           <h2>Fila em dia</h2>
           <p>Nenhum chamado aberto agora. Os novos aparecem aqui assim que forem enviados.</p>
         </div>
       ) : null}
 
-      {!isLoading && abertos.length && !visible.length ? (
+      {!isLoading && abertos.length && !rows.length ? (
         <div className="empty-state">
           <h2>Nenhum chamado com esses filtros</h2>
           <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters}>
@@ -313,9 +321,34 @@ function TiQueueView({ chamados, isLoading, onUpdateChamado }) {
         </div>
       ) : null}
 
-      {visible.length ? (
+      {rows.length ? (
         <ol className="strip-list">
-          {visible.map((item) => {
+          {rows.map((item) => {
+            if (item.isRecentlyClosed) {
+              return (
+                <li
+                  key={item.id}
+                  className="strip-closed"
+                  onMouseEnter={() => setIsUndoPaused(true)}
+                  onMouseLeave={() => setIsUndoPaused(false)}
+                  onFocus={() => setIsUndoPaused(true)}
+                  onBlur={() => setIsUndoPaused(false)}
+                >
+                  <span>
+                    {recentlyClosed.text} <span className="strip-closed-subject">{item.assunto}</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={handleUndo}
+                    disabled={isUndoing}
+                  >
+                    {isUndoing ? "Reabrindo..." : "Desfazer"}
+                  </button>
+                </li>
+              );
+            }
+
             const isSaving = savingId === item.id;
             const draft = getDraft(item);
             const errorId = `queue-error-${item.id}`;

@@ -113,7 +113,7 @@ export const getClosedSeal = (chamado) => {
   }
 
   if (chamado.slaViolado) {
-    return { tone: "late", label: "Fora do prazo" };
+    return { tone: "late", label: "Com atraso" };
   }
 
   return chamado.slaViolado === false

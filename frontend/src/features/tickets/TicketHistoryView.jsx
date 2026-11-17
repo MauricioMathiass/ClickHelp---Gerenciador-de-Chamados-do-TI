@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { formatDateTime } from "../../shared/utils/format";
-import { getClosedSeal, joinMeta, requesterLabel } from "./ticketDisplay";
+import { formatProtocolo, getClosedSeal, joinMeta, requesterLabel } from "./ticketDisplay";
 import TicketStrip from "./TicketStrip";
 import "./queue.css";
 
@@ -12,9 +12,30 @@ const FILTERS = [
 const closedAt = (item) => new Date(item.dataFechamento ?? item.dataAtualizacao);
 
 /** Chamados fechados, com o selo do SLA no canhoto. */
-function TicketHistoryView({ chamados, currentUsername, isLoading }) {
+function TicketHistoryView({ chamados, currentUsername, isLoading, onUpdateChamado }) {
   const [filter, setFilter] = useState("mine");
   const [expandedId, setExpandedId] = useState(null);
+  const [reopeningId, setReopeningId] = useState(null);
+  const [notice, setNotice] = useState({ tone: "ok", text: "" });
+
+  /** Devolve o chamado à fila como "Em andamento"; a resposta já escrita continua lá. */
+  const handleReopen = async (chamado) => {
+    const protocolo = formatProtocolo(chamado.numero);
+    setReopeningId(chamado.id);
+    const errorMessage = await onUpdateChamado(chamado.id, { status: "Em andamento" });
+    setReopeningId(null);
+
+    if (errorMessage) {
+      setNotice({ tone: "error", text: `Não foi possível reabrir ${protocolo}. ${errorMessage}` });
+      return;
+    }
+
+    setExpandedId(null);
+    setNotice({
+      tone: "ok",
+      text: `Chamado ${protocolo} reaberto. Ele voltou para a Fila de atendimento como "Em andamento".`,
+    });
+  };
 
   const fechados = useMemo(
     () =>
@@ -40,7 +61,7 @@ function TicketHistoryView({ chamados, currentUsername, isLoading }) {
               {late ? (
                 <>
                   {" · "}
-                  <span className="summary-late">{late} fora do prazo</span>
+                  <span className="summary-late">{late} com atraso</span>
                 </>
               ) : null}
             </p>
@@ -61,6 +82,10 @@ function TicketHistoryView({ chamados, currentUsername, isLoading }) {
           ))}
         </div>
       </header>
+
+      <div className={`queue-announcement tone-${notice.tone}`}>
+        <p role="status">{notice.text}</p>
+      </div>
 
       {isLoading ? (
         <div className="view-loading" role="status">
@@ -122,6 +147,18 @@ function TicketHistoryView({ chamados, currentUsername, isLoading }) {
                     <p>{item.resposta}</p>
                   </div>
                 ) : null}
+
+                <div className="queue-actions history-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={reopeningId === item.id}
+                    aria-label={`Reabrir chamado ${formatProtocolo(item.numero)}: ${item.assunto}`}
+                    onClick={() => handleReopen(item)}
+                  >
+                    {reopeningId === item.id ? "Reabrindo..." : "Reabrir chamado"}
+                  </button>
+                </div>
               </TicketStrip>
             );
           })}
