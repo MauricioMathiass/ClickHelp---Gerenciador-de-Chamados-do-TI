@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { query, toIso, transaction } from "../../shared/db/database.js";
 import { badRequest, notFound } from "../../shared/http/httpError.js";
+import { DEMO_USERNAMES, isDemoUser } from "../../shared/demo.js";
 import { ROLE_ADMIN, TI_ROLES } from "../../shared/roles.js";
 import { sendNewTicketEmail } from "../notifications/email.service.js";
 import { createNotification } from "../notifications/notifications.service.js";
@@ -111,7 +112,15 @@ const notifySafely = async (notification) => {
   }
 };
 
+/** Chamado aberto por uma conta de exemplo (os únicos que a demonstração enxerga). */
+const isDemoChamado = (chamado) => DEMO_USERNAMES.includes(normalizeText(chamado.solicitante));
+
 const canSeeChamado = (chamado, user) => {
+  // Quem entrou pela demonstração só enxerga (e altera) os chamados de exemplo.
+  if (isDemoUser(user) && !isDemoChamado(chamado)) {
+    return false;
+  }
+
   if (chamado.visibility === ADMIN_ONLY_VISIBILITY) {
     return user.role === ROLE_ADMIN;
   }
@@ -133,7 +142,10 @@ const withRequesterNames = async (chamados) => {
 };
 
 /** Lista os chamados que o usuário autenticado pode ver (mais novos primeiro). */
-export const listChamados = async (user) => withRequesterNames(await listVisibleChamados(user));
+export const listChamados = async (user) => {
+  const visible = await listVisibleChamados(user);
+  return withRequesterNames(isDemoUser(user) ? visible.filter(isDemoChamado) : visible);
+};
 
 const listVisibleChamados = async (user) => {
   if (user.role === ROLE_ADMIN) {

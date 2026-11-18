@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { query, toIso, transaction } from "../../shared/db/database.js";
+import { DEMO_USERNAMES, isDemoUser } from "../../shared/demo.js";
 
 const MAX_NOTIFICATIONS = 500;
 const ACTIVE_LIMIT = 30;
@@ -59,6 +60,24 @@ export const createNotification = ({ type, title, message, recipients, context =
     return row;
   });
 
+/**
+ * Na demonstração, só os avisos ligados aos chamados de exemplo ou enviados a
+ * contas de exemplo: quem visita não vê notificações de mais ninguém.
+ */
+const onlyDemoNotifications = async (rows) => {
+  const demoChamados = new Set(
+    (
+      await query("SELECT id FROM chamados WHERE LOWER(solicitante) = ANY ($1::text[])", [DEMO_USERNAMES])
+    ).map((row) => String(row.id))
+  );
+
+  return rows.filter(
+    (row) =>
+      demoChamados.has(String(row.context?.chamadoId ?? "")) ||
+      (row.recipient_usernames ?? []).some((username) => DEMO_USERNAMES.includes(username))
+  );
+};
+
 export const listNotificationsForUser = async (user) => {
   const rows = await query(
     `SELECT n.*, s.read_at, s.archived_at
@@ -68,9 +87,10 @@ export const listNotificationsForUser = async (user) => {
      ORDER BY n.created_at DESC`,
     [normalizeUsername(user.username), user.role]
   );
+  const visibleRows = isDemoUser(user) ? await onlyDemoNotifications(rows) : rows;
 
-  const active = rows.filter((row) => !row.archived_at);
-  const archived = rows.filter((row) => row.archived_at);
+  const active = visibleRows.filter((row) => !row.archived_at);
+  const archived = visibleRows.filter((row) => row.archived_at);
 
   return {
     notifications: active.slice(0, ACTIVE_LIMIT).map(toPublic),

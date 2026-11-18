@@ -1,7 +1,7 @@
 import { createUser, listUsers, sanitizeUser, updateUser } from "./users.service.js";
 
-export const getUsers = async (_req, res) => {
-  res.status(200).json({ users: await listUsers() });
+export const getUsers = async (req, res) => {
+  res.status(200).json({ users: await listUsers(req.user) });
 };
 
 export const createUserHandler = async (req, res) => {

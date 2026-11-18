@@ -87,9 +87,24 @@ function NotificationToasts({ session }) {
     }
 
     const timeoutIds = timeoutIdsRef.current;
+    // A primeira leitura depois de entrar só marca o que já existia: os avisos
+    // antigos ficam no contador do sino, sem pular na tela por cima do trabalho.
+    let hasBaseline = false;
 
-    const handleState = ({ notifications }) => {
+    const handleState = ({ notifications, loaded }) => {
+      if (!loaded) {
+        return;
+      }
+
       const toastedIds = readToastedIds(username);
+
+      if (!hasBaseline) {
+        hasBaseline = true;
+        notifications.forEach((item) => toastedIds.add(item.id));
+        saveToastedIds(username, toastedIds);
+        return;
+      }
+
       const fresh = notifications.filter((item) => !item.read && !toastedIds.has(item.id));
 
       if (!fresh.length) {

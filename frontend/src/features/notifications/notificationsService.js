@@ -6,7 +6,8 @@ const POLL_INTERVAL_MS = 20000;
 const TOASTED_PREFIX = "clickhelp.notifications.toasted.";
 const MAX_TOASTED_IDS = 300;
 
-const EMPTY_STATE = { notifications: [], archived: [], unreadCount: 0 };
+// `loaded` diz se já veio a primeira resposta do servidor nesta sessão.
+const EMPTY_STATE = { notifications: [], archived: [], unreadCount: 0, loaded: false };
 
 let state = EMPTY_STATE;
 const listeners = new Set();
@@ -21,6 +22,7 @@ const applyResponse = (data) => {
     notifications: data?.notifications ?? [],
     archived: data?.archived ?? [],
     unreadCount: data?.unreadCount ?? 0,
+    loaded: true,
   };
   emit();
   return state;

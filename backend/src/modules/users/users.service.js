@@ -113,11 +113,19 @@ const toListItem = (user, fromEnv = false) => ({
   createdAt: user.createdAt ?? null,
 });
 
-/** Lista de usuários para a tela de administração. */
-export const listUsers = async () => {
+/**
+ * Lista de usuários para a tela de administração. Quem entrou pela
+ * demonstração (`viewer` com login demo.*) vê só as contas de exemplo.
+ */
+export const listUsers = async (viewer = null) => {
   const envAdmin = getEnvAdmin();
   const rows = await query("SELECT * FROM users ORDER BY id");
   const users = rows.map((row) => toListItem(fromRow(row)));
+
+  if (isDemoUser(viewer)) {
+    return users.filter((user) => DEMO_USERNAMES.includes(user.username));
+  }
+
   return envAdmin ? [toListItem(envAdmin, true), ...users] : users;
 };
 

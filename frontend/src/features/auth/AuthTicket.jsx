@@ -6,9 +6,10 @@ import "./LoginPage.css";
 /**
  * Moldura das telas de acesso, no formato de chamado impresso: o canhoto leva
  * a marca e o corpo, depois da linha de corte, vem em `children`. O elemento
- * raiz de `children` usa as classes "paper-ticket-body login-body".
+ * raiz de `children` usa as classes "paper-ticket-body login-body". `stubNote`
+ * entra no fim do canhoto (ex.: o aviso do modo demonstração).
  */
-function AuthTicket({ children }) {
+function AuthTicket({ children, stubNote = null }) {
   const { branding } = useSettings();
 
   return (
@@ -23,6 +24,7 @@ function AuthTicket({ children }) {
             </h1>
             {branding.companyName ? <p className="login-company">{branding.companyName}</p> : null}
             <p className="login-purpose">Abra chamados e acompanhe o atendimento da equipe de TI.</p>
+            {stubNote}
           </div>
         </header>
 

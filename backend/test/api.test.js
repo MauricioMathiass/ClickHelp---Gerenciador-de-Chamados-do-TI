@@ -755,6 +755,41 @@ describe("modo demonstracao", () => {
     }
   });
 
+  test("demonstracao so enxerga contas, chamados e avisos de exemplo", async () => {
+    process.env.DEMO_MODE = "true";
+
+    try {
+      const admin = (await entrarDemo("administrador")).data.token;
+      const analista = (await entrarDemo("analista")).data.token;
+
+      // Um chamado de uma conta de verdade, que a demonstração não pode ver nem mexer.
+      const real = (await api("POST", "/chamados", { token: mariaToken, body: novoChamado("So da Maria") }))
+        .data.chamado;
+
+      const usuarios = (await api("GET", "/users", { token: admin })).data.users;
+      assert.ok(usuarios.length > 0);
+      assert.ok(usuarios.every((user) => user.username.startsWith("demo.")));
+
+      const chamados = (await api("GET", "/chamados", { token: analista })).data.chamados;
+      assert.ok(chamados.every((item) => item.solicitante.startsWith("demo.")));
+
+      const alterar = await api("PATCH", `/chamados/${real.id}`, {
+        token: analista,
+        body: { status: "Em andamento" },
+      });
+      assert.notEqual(alterar.status, 200);
+
+      const avisos = (await api("GET", "/notifications", { token: analista })).data.notifications;
+      assert.ok(avisos.every((aviso) => !aviso.message.includes("So da Maria")));
+
+      // Quem tem conta de verdade continua vendo tudo.
+      const todos = (await api("GET", "/users", { token: adminToken })).data.users;
+      assert.ok(todos.some((user) => !user.username.startsWith("demo.")));
+    } finally {
+      process.env.DEMO_MODE = "";
+    }
+  });
+
   test("contas de demonstracao nao entram por senha e o login fica reservado", async () => {
     const { status } = await api("POST", "/auth/login", {
       body: { username: "demo.admin", password: "demo$sem-senha" },
