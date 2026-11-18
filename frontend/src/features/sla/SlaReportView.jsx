@@ -82,7 +82,7 @@ function SlaReportView({ chamados }) {
             onClick={handleExport}
             disabled={isExporting || !rows.length}
           >
-            {isExporting ? "Gerando..." : "Exportar Excel"}
+            {isExporting ? "Gerando..." : "Exportar para Excel"}
           </button>
         </div>
       </header>

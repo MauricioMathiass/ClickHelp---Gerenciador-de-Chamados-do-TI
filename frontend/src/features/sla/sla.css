@@ -124,6 +124,16 @@
   letter-spacing: 0.08em;
 }
 
+/* Explica o percentual do centro do gráfico em uma linha. */
+.sla-pie-caption {
+  max-width: 40ch;
+  margin: -6px auto 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}
+
 .sla-pie-legend {
   display: grid;
   gap: 12px;

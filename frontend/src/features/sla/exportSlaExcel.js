@@ -78,13 +78,16 @@ export const exportSlaExcel = async ({ chamados, stats, appName }) => {
   summary.addRows([
     { indicador: "Total de chamados", valor: stats.total },
     { indicador: "Fechados no prazo", valor: stats.atendidos },
-    { indicador: "Em aberto no prazo", valor: stats.emAberto },
-    { indicador: "Violados", valor: stats.violados },
+    { indicador: "Abertos no prazo", valor: stats.emAberto },
+    { indicador: "Atrasados", valor: stats.violados },
     { indicador: "Sem prazo", valor: stats.semPrazo },
-    { indicador: "Eficiência (fechados no prazo / decididos)", valor: `${stats.eficiencia}%` },
+    {
+      indicador: "No prazo (fechados no prazo ÷ fechados no prazo + atrasados)",
+      valor: `${stats.eficiencia}%`,
+    },
     { indicador: "Percentual fechados no prazo", valor: `${stats.atendidosPct}%` },
-    { indicador: "Percentual em aberto no prazo", valor: `${stats.emAbertoPct}%` },
-    { indicador: "Percentual violados", valor: `${stats.violadosPct}%` },
+    { indicador: "Percentual abertos no prazo", valor: `${stats.emAbertoPct}%` },
+    { indicador: "Percentual atrasados", valor: `${stats.violadosPct}%` },
   ]);
   styleSheet(summary, 1);
 

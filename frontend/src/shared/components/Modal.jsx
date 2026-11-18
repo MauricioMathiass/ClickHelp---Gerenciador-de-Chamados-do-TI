@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from "react";
+import { FaXmark } from "react-icons/fa6";
 import "./Modal.css";
 
 // Pilha de modais abertos: Esc fecha só o de cima, e a página de fundo
@@ -90,8 +91,15 @@ function Modal({
         <div className={`modal-header ${centerTitle ? "modal-header-center-title" : ""}`.trim()}>
           <h2 id={titleId}>{title}</h2>
           {!hideCloseButton ? (
-            <button type="button" className="btn btn-ghost" onClick={onClose}>
-              Fechar
+            // Só o X, com nome para leitor de tela: "Fechar" escrito confundia com "Fechar chamado".
+            <button
+              type="button"
+              className="modal-close"
+              onClick={onClose}
+              aria-label="Fechar janela"
+              title="Fechar janela (Esc)"
+            >
+              <FaXmark aria-hidden="true" />
             </button>
           ) : null}
         </div>

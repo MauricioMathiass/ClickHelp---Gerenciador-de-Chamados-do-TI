@@ -34,6 +34,26 @@
   outline: none;
 }
 
+/* Botão de fechar a janela: quadrado discreto com X, no canto do cabeçalho. */
+.modal-close {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-1);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  background: var(--surface-3);
+  color: var(--text-strong);
+}
+
 .modal-size-wide {
   width: min(100%, 1040px);
 }

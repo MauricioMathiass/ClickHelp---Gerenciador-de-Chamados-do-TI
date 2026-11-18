@@ -8,8 +8,8 @@ import "./sla.css";
 
 const LEGEND = [
   { key: "atendidos", pct: "atendidosPct", label: "Fechados no prazo", dot: "dot-atendido" },
-  { key: "emAberto", pct: "emAbertoPct", label: "Em aberto no prazo", dot: "dot-aberto" },
-  { key: "violados", pct: "violadosPct", label: "Violados", dot: "dot-violado" },
+  { key: "emAberto", pct: "emAbertoPct", label: "Abertos no prazo", dot: "dot-aberto" },
+  { key: "violados", pct: "violadosPct", label: "Atrasados", dot: "dot-violado" },
 ];
 
 /** Gráfico de pizza (conic-gradient) com as fatias na ordem da legenda. */
@@ -43,15 +43,15 @@ function SlaChartModal({ isOpen, onClose, chamados }) {
   const summary = [
     { label: "Total de chamados", value: stats.total },
     { label: "Fechados no prazo", value: stats.atendidos },
-    { label: "Em aberto no prazo", value: stats.emAberto },
-    { label: "Violados", value: stats.violados },
+    { label: "Abertos no prazo", value: stats.emAberto },
+    { label: "Atrasados", value: stats.violados },
   ];
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Relatório gráfico de SLA" size="wide">
       <div className="sla-graphic-toolbar">
         <button type="button" className="btn btn-primary btn-sm" onClick={handleExport}>
-          Gerar relatório Excel
+          Exportar para Excel
         </button>
       </div>
 
@@ -63,10 +63,14 @@ function SlaChartModal({ isOpen, onClose, chamados }) {
             <div className="sla-pie-chart" style={{ background: buildPieBackground(stats) }}>
               <div className="sla-pie-core">
                 <strong>{stats.eficiencia}%</strong>
-                <span>Eficiência</span>
+                <span>no prazo</span>
               </div>
             </div>
           </div>
+
+          <p className="sla-pie-caption">
+            Dos chamados já fechados ou atrasados, quantos fecharam dentro do prazo.
+          </p>
 
           <div className="sla-pie-legend">
             {LEGEND.map((item) => (

@@ -1,8 +1,8 @@
 // Regras de exibição do SLA usadas pelo relatório, pelo gráfico e pelo Excel.
 
-export const SLA_ATENDIDO = "Atendido";
-export const SLA_NO_PRAZO = "Dentro do prazo";
-export const SLA_VIOLADO = "Violado";
+export const SLA_ATENDIDO = "Fechado no prazo";
+export const SLA_NO_PRAZO = "Aberto no prazo";
+export const SLA_VIOLADO = "Atrasado";
 export const SLA_SEM_PRAZO = "Sem prazo";
 
 export const SLA_FILTER_OPTIONS = [
@@ -14,9 +14,10 @@ export const SLA_FILTER_OPTIONS = [
 ];
 
 /**
- * - "Atendido": fechado dentro do prazo;
- * - "Dentro do prazo": ainda aberto e no prazo;
- * - "Violado": prazo estourado (aberto ou fechado);
+ * Vocabulário único do prazo (fila, Histórico, relatório e Excel):
+ * - "Fechado no prazo": fechado antes do limite;
+ * - "Aberto no prazo": ainda aberto e antes do limite;
+ * - "Atrasado": passou do limite (aberto ou fechado com atraso);
  * - "Sem prazo": chamado aberto sem data limite.
  */
 export const getSlaLabel = (chamado, now = new Date()) => {
