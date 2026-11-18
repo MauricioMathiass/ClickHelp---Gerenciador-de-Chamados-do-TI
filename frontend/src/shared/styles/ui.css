@@ -149,6 +149,40 @@
   font-size: 12px;
 }
 
+/* Aviso informativo (ex.: bloqueio da demonstração): na cor da marca, não de erro. */
+.feedback.feedback-info,
+.user-card .feedback.feedback-info {
+  background: color-mix(in srgb, var(--brand-primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-light) 35%, transparent);
+  color: var(--text-strong);
+  font-weight: 500;
+  text-align: left;
+}
+
+.demo-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--brand-light) 35%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
+}
+
+.demo-notice-icon {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--brand-light);
+}
+
+.demo-notice p {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .field-hint-warning {
   color: var(--color-warning);
 }

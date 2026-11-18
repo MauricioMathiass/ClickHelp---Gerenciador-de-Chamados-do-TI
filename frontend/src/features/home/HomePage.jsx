@@ -263,8 +263,12 @@ function HomePage({ onBack, session }) {
 
       {isAdmin ? (
         <>
-          {isOpen(MODALS.USERS) ? <UsersModal isOpen onClose={close} currentUserId={user?.id} /> : null}
-          {isOpen(MODALS.SETTINGS) ? <SettingsModal isOpen onClose={close} /> : null}
+          {isOpen(MODALS.USERS) ? (
+            <UsersModal isOpen onClose={close} currentUserId={user?.id} isDemo={Boolean(user?.demo)} />
+          ) : null}
+          {isOpen(MODALS.SETTINGS) ? (
+            <SettingsModal isOpen onClose={close} isDemo={Boolean(user?.demo)} />
+          ) : null}
         </>
       ) : null}
 

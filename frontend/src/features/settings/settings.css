@@ -538,3 +538,8 @@
     flex: 1 1 auto;
   }
 }
+
+/* Aviso da demonstração: alinhado às margens do cabeçalho, acima das abas. */
+.settings-modal .demo-notice {
+  margin: 16px 24px 0;
+}

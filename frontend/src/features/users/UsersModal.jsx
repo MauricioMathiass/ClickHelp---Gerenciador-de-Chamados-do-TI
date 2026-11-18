@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import DemoNotice, { DEMO_BLOCKED_MESSAGE } from "../../shared/components/DemoNotice";
 import Feedback from "../../shared/components/Feedback";
 import Modal from "../../shared/components/Modal";
 import Select from "../../shared/components/Select";
@@ -14,7 +15,7 @@ const MIN_PASSWORD_LENGTH = 6;
 
 const SUCCESS_VISIBLE_MS = 4000;
 
-function UserCard({ user, isSelf, onSaved }) {
+function UserCard({ user, isSelf, onSaved, isDemo }) {
   const { catalog } = useSettings();
   const [newPassword, setNewPassword] = useState("");
   const [showReset, setShowReset] = useState(false);
@@ -34,9 +35,12 @@ function UserCard({ user, isSelf, onSaved }) {
     })),
   ];
 
-  // Avisos de sucesso somem sozinhos; erros ficam até a próxima ação.
+  // Na demonstração, qualquer alteração avisa já no primeiro clique, sem confirmação antes.
+  const blockDemo = () => setFeedback({ type: "info", text: DEMO_BLOCKED_MESSAGE });
+
+  // Avisos de sucesso e da demonstração somem sozinhos; erros ficam até a próxima ação.
   useEffect(() => {
-    if (feedback.type !== "success") {
+    if (feedback.type !== "success" && feedback.type !== "info") {
       return undefined;
     }
 
@@ -122,6 +126,11 @@ function UserCard({ user, isSelf, onSaved }) {
             options={ROLE_OPTIONS}
             disabled={isSaving || isSelf}
             onChange={(event) => {
+              if (isDemo) {
+                blockDemo();
+                return;
+              }
+
               const { value } = event.target;
               setPendingRole(value === user.role ? null : value);
               setConfirmDeactivate(false);
@@ -135,7 +144,9 @@ function UserCard({ user, isSelf, onSaved }) {
             value={user.department ?? ""}
             options={departmentOptions}
             disabled={isSaving}
-            onChange={(event) => save({ department: event.target.value }, "Departamento atualizado.")}
+            onChange={(event) =>
+              isDemo ? blockDemo() : save({ department: event.target.value }, "Departamento atualizado.")
+            }
           />
 
           <button
@@ -144,6 +155,11 @@ function UserCard({ user, isSelf, onSaved }) {
             disabled={isSaving || isSelf}
             aria-label={`${user.active ? "Desativar" : "Reativar"} ${user.name}`}
             onClick={() => {
+              if (isDemo) {
+                blockDemo();
+                return;
+              }
+
               if (user.active) {
                 setConfirmDeactivate(true);
                 setPendingRole(null);
@@ -161,7 +177,7 @@ function UserCard({ user, isSelf, onSaved }) {
             disabled={isSaving}
             aria-expanded={showReset}
             aria-label={`Redefinir senha de ${user.name}`}
-            onClick={() => setShowReset((current) => !current)}
+            onClick={() => (isDemo ? blockDemo() : setShowReset((current) => !current))}
           >
             Redefinir senha
           </button>
@@ -248,9 +264,10 @@ function UserCard({ user, isSelf, onSaved }) {
   );
 }
 
-function UsersModal({ isOpen, onClose, currentUserId }) {
+function UsersModal({ isOpen, onClose, currentUserId, isDemo = false }) {
   const [users, setUsers] = useState([]);
   const [loadError, setLoadError] = useState("");
+  const [demoBlocked, setDemoBlocked] = useState(false);
   const [openNovoUsuario, setOpenNovoUsuario] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -275,12 +292,24 @@ function UsersModal({ isOpen, onClose, currentUserId }) {
         title="Usuários"
         size="wide"
         actions={
-          <button type="button" className="btn btn-primary" onClick={() => setOpenNovoUsuario(true)}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => (isDemo ? setDemoBlocked(true) : setOpenNovoUsuario(true))}
+          >
             Cadastrar novo usuário
           </button>
         }
       >
+        {isDemo ? (
+          <DemoNotice>
+            Na demonstração você vê os usuários de exemplo e os controles de cada um, mas as alterações não
+            são salvas: o sistema continua igual para quem vem depois.
+          </DemoNotice>
+        ) : null}
+
         <Feedback>{loadError}</Feedback>
+        {demoBlocked ? <Feedback type="info">{DEMO_BLOCKED_MESSAGE}</Feedback> : null}
 
         <div className="tickets-stack">
           {users.map((user) => (
@@ -289,6 +318,7 @@ function UsersModal({ isOpen, onClose, currentUserId }) {
               user={user}
               isSelf={Number(user.id) === Number(currentUserId)}
               onSaved={refresh}
+              isDemo={isDemo}
             />
           ))}
         </div>

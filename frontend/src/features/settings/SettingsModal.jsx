@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import DemoNotice, { DEMO_BLOCKED_MESSAGE } from "../../shared/components/DemoNotice";
 import Feedback from "../../shared/components/Feedback";
 import BrandName from "../../shared/components/BrandName";
 import Modal from "../../shared/components/Modal";
@@ -396,7 +397,7 @@ function HolidaysTab({ draft, update, movableOptions }) {
   );
 }
 
-function SettingsModal({ isOpen = true, onClose }) {
+function SettingsModal({ isOpen = true, onClose, isDemo = false }) {
   const { settings, options, reload, save } = useSettings();
   const [tab, setTab] = useState("branding");
   const [draft, setDraft] = useState(null);
@@ -430,6 +431,12 @@ function SettingsModal({ isOpen = true, onClose }) {
   };
 
   const handleSave = async () => {
+    // Na demonstração nada é gravado: o aviso aparece já no clique, sem ir ao servidor.
+    if (isDemo) {
+      setFeedback({ type: "info", text: DEMO_BLOCKED_MESSAGE });
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -448,7 +455,8 @@ function SettingsModal({ isOpen = true, onClose }) {
 
   // Fechar (botão, Esc ou clique fora) com alterações pendentes pede confirmação antes de descartar.
   const requestClose = () => {
-    if (hasChanges && !isSaving) {
+    // Na demonstração não há o que perder: as mudanças nunca seriam salvas.
+    if (hasChanges && !isSaving && !isDemo) {
       setConfirmDiscard(true);
       return;
     }
@@ -491,7 +499,11 @@ function SettingsModal({ isOpen = true, onClose }) {
               <Feedback type={feedback.type}>{feedback.text}</Feedback>
             ) : (
               <p className="settings-status" aria-live="polite">
-                {hasChanges ? "Há alterações não salvas." : ""}
+                {hasChanges
+                  ? isDemo
+                    ? "Na demonstração, as mudanças aparecem só na prévia."
+                    : "Há alterações não salvas."
+                  : ""}
               </p>
             )}
             <button
@@ -506,6 +518,13 @@ function SettingsModal({ isOpen = true, onClose }) {
         )
       }
     >
+      {isDemo ? (
+        <DemoNotice>
+          Na demonstração você pode mexer nos campos e ver a prévia da marca na hora, mas nada é salvo: as
+          configurações continuam iguais para quem vem depois.
+        </DemoNotice>
+      ) : null}
+
       <div className="settings-layout">
         <div
           className="settings-nav"
