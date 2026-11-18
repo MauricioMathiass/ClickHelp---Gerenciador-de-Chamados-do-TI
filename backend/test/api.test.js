@@ -701,12 +701,20 @@ describe("modo demonstracao", () => {
       // A equipe vê todos, com SLA atendido e violado para o relatório não ficar vazio.
       const todos = (await api("GET", "/chamados", { token: analista.data.token })).data.chamados;
       const exemplos = todos.filter((item) => item.solicitante.startsWith("demo."));
-      assert.equal(exemplos.length, 9);
+      assert.equal(exemplos.length, 12);
       assert.ok(exemplos.some((item) => item.status === "Fechado" && item.slaViolado === true));
       assert.ok(exemplos.some((item) => item.status === "Fechado" && item.slaViolado === false));
       assert.ok(
         exemplos.every((item) => !item.dataFechamento || new Date(item.dataFechamento) <= new Date())
       );
+
+      // Exemplos críveis: a maior parte fecha no prazo, e cada chamado tem categoria e local próprios.
+      const fechados = exemplos.filter((item) => item.status === "Fechado");
+      const noPrazo = fechados.filter((item) => item.slaViolado === false).length;
+      assert.ok(noPrazo / fechados.length >= 0.75);
+      // A categoria vem do próprio exemplo (ou da primeira do cadastro, se ela não existir).
+      assert.ok(exemplos.every((item) => item.categoria));
+      assert.ok(exemplos.every((item) => Number.isInteger(item.numero)));
 
       const avisos = (await api("GET", "/notifications", { token: usuario.data.token })).data;
       assert.ok(avisos.notifications.length > 0);
@@ -826,7 +834,7 @@ describe("modo demonstracao", () => {
       assuntos = chamados.map((item) => item.assunto);
       assert.ok(!assuntos.includes("Bagunca do visitante"));
       assert.ok(chamados.some((item) => item.id === real.data.chamado.id));
-      assert.equal(chamados.filter((item) => item.solicitante.startsWith("demo.")).length, 9);
+      assert.equal(chamados.filter((item) => item.solicitante.startsWith("demo.")).length, 12);
     } finally {
       process.env.DEMO_MODE = "";
     }
