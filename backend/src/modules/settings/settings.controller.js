@@ -1,3 +1,4 @@
+import { isDemoMode } from "../../shared/demo.js";
 import { MOVABLE_HOLIDAYS } from "../tickets/sla.js";
 import { getPublicSettings, getSettings, updateSettings } from "./settings.service.js";
 
@@ -7,7 +8,8 @@ const movableHolidayOptions = Object.entries(MOVABLE_HOLIDAYS).map(([value, { la
 }));
 
 export const getPublic = async (_req, res) => {
-  res.status(200).json(await getPublicSettings());
+  // demoMode: a tela de login mostra os botões de acesso de demonstração.
+  res.status(200).json({ ...(await getPublicSettings()), demoMode: isDemoMode() });
 };
 
 export const getAll = async (_req, res) => {

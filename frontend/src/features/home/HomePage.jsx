@@ -190,6 +190,13 @@ function HomePage({ onBack, session }) {
         onLogout={onBack}
       />
 
+      {user?.demo ? (
+        <p className="home-demo-note" role="note">
+          <strong>Demonstração.</strong> Os dados são fictícios e voltam ao original a cada 6 horas. Usuários
+          e configurações ficam só para ver. Para conhecer outro perfil, use Sair.
+        </p>
+      ) : null}
+
       <nav className="home-nav" aria-label="Menu principal">
         {isTeam ? (
           <div className="home-nav-group">

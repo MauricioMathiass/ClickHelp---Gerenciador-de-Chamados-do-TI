@@ -666,3 +666,134 @@ describe("correcoes da quarta analise", () => {
     }
   });
 });
+
+describe("modo demonstracao", () => {
+  const entrarDemo = (perfil) => api("POST", "/auth/demo", { body: { perfil } });
+
+  test("desligado: sem rota de demonstracao e sem botoes na tela de login", async () => {
+    process.env.DEMO_MODE = "";
+    assert.equal((await entrarDemo("usuario")).status, 404);
+    assert.equal((await api("GET", "/settings/public")).data.demoMode, false);
+  });
+
+  test("ligado: entra sem senha em cada perfil e ve os dados de exemplo", async () => {
+    process.env.DEMO_MODE = "true";
+
+    try {
+      assert.equal((await api("GET", "/settings/public")).data.demoMode, true);
+      assert.equal((await entrarDemo("inexistente")).status, 400);
+      assert.equal((await entrarDemo("__proto__")).status, 400);
+
+      const usuario = await entrarDemo("usuario");
+      const analista = await entrarDemo("analista");
+      const admin = await entrarDemo("administrador");
+      assert.equal(usuario.status, 200);
+      assert.equal(usuario.data.user.role, "Usuario");
+      assert.equal(usuario.data.user.demo, true);
+      assert.equal(analista.data.user.role, "Analista de TI");
+      assert.equal(admin.data.user.role, "Administrador");
+
+      // O usuário de demonstração vê só os próprios chamados de exemplo.
+      const meus = (await api("GET", "/chamados", { token: usuario.data.token })).data.chamados;
+      assert.ok(meus.length >= 3);
+      assert.ok(meus.every((item) => item.solicitante === "demo.usuario"));
+
+      // A equipe vê todos, com SLA atendido e violado para o relatório não ficar vazio.
+      const todos = (await api("GET", "/chamados", { token: analista.data.token })).data.chamados;
+      const exemplos = todos.filter((item) => item.solicitante.startsWith("demo."));
+      assert.equal(exemplos.length, 9);
+      assert.ok(exemplos.some((item) => item.status === "Fechado" && item.slaViolado === true));
+      assert.ok(exemplos.some((item) => item.status === "Fechado" && item.slaViolado === false));
+      assert.ok(
+        exemplos.every((item) => !item.dataFechamento || new Date(item.dataFechamento) <= new Date())
+      );
+
+      const avisos = (await api("GET", "/notifications", { token: usuario.data.token })).data;
+      assert.ok(avisos.notifications.length > 0);
+
+      // Abrir e fechar chamado funciona normalmente na demonstração.
+      const novo = await api("POST", "/chamados", {
+        token: usuario.data.token,
+        body: novoChamado("Teste visitante"),
+      });
+      assert.equal(novo.status, 201);
+      const fechado = await api("PATCH", `/chamados/${novo.data.chamado.id}`, {
+        token: analista.data.token,
+        body: { status: "Fechado", resposta: "Resolvido na demonstração" },
+      });
+      assert.equal(fechado.status, 200);
+    } finally {
+      process.env.DEMO_MODE = "";
+    }
+  });
+
+  test("administrador de demonstracao ve usuarios e configuracoes, mas nao altera", async () => {
+    process.env.DEMO_MODE = "true";
+
+    try {
+      const { token } = (await entrarDemo("administrador")).data;
+      assert.equal((await api("GET", "/users", { token })).status, 200);
+      assert.equal((await api("GET", "/settings", { token })).status, 200);
+
+      const salvar = await api("PUT", "/settings", { token, body: testSettings() });
+      assert.equal(salvar.status, 403);
+      assert.match(salvar.data.message, /demonstração/);
+
+      const criar = await api("POST", "/users", {
+        token,
+        body: { name: "Invasor", surname: "Teste", password: "senha123" },
+      });
+      assert.equal(criar.status, 403);
+
+      const users = (await api("GET", "/users", { token: adminToken })).data.users;
+      const maria = users.find((user) => user.username === "maria.silva");
+      const desativar = await api("PATCH", `/users/${maria.id}`, { token, body: { active: false } });
+      assert.equal(desativar.status, 403);
+      assert.equal((await api("GET", "/chamados", { token: mariaToken })).status, 200);
+    } finally {
+      process.env.DEMO_MODE = "";
+    }
+  });
+
+  test("contas de demonstracao nao entram por senha e o login fica reservado", async () => {
+    const { status } = await api("POST", "/auth/login", {
+      body: { username: "demo.admin", password: "demo$sem-senha" },
+    });
+    assert.equal(status, 401);
+
+    const criado = await api("POST", "/users", {
+      token: adminToken,
+      body: { name: "Demo", surname: "Usuario", password: "senha123" },
+    });
+    assert.equal(criado.status, 201);
+    assert.notEqual(criado.data.user.username, "demo.usuario");
+  });
+
+  test("restaura os dados de exemplo depois do intervalo, sem apagar chamados reais", async () => {
+    process.env.DEMO_MODE = "true";
+
+    try {
+      const visitante = (await entrarDemo("usuario")).data.token;
+      await api("POST", "/chamados", { token: visitante, body: novoChamado("Bagunca do visitante") });
+      const real = await api("POST", "/chamados", { token: mariaToken, body: novoChamado("Chamado real") });
+
+      // Ainda dentro do intervalo: nada é apagado.
+      await entrarDemo("usuario");
+      let assuntos = (await api("GET", "/chamados", { token: adminToken })).data.chamados.map(
+        (item) => item.assunto
+      );
+      assert.ok(assuntos.includes("Bagunca do visitante"));
+
+      await query("UPDATE demo_state SET reset_at = NOW() - INTERVAL '7 hours'");
+      await entrarDemo("usuario");
+
+      const chamados = (await api("GET", "/chamados", { token: adminToken })).data.chamados;
+      assuntos = chamados.map((item) => item.assunto);
+      assert.ok(!assuntos.includes("Bagunca do visitante"));
+      assert.ok(chamados.some((item) => item.id === real.data.chamado.id));
+      assert.equal(chamados.filter((item) => item.solicitante.startsWith("demo.")).length, 9);
+    } finally {
+      process.env.DEMO_MODE = "";
+    }
+  });
+});

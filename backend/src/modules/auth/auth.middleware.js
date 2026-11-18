@@ -1,4 +1,5 @@
 import { config } from "../../config/env.js";
+import { isDemoUser } from "../../shared/demo.js";
 import { forbidden, unauthorized } from "../../shared/http/httpError.js";
 import { verifyToken } from "../../shared/security.js";
 import { findActiveUserById, sanitizeUser } from "../users/users.service.js";
@@ -28,6 +29,24 @@ export const requireAuth = async (req, _res, next) => {
   }
 
   req.user = sanitizeUser(user);
+  return next();
+};
+
+/**
+ * Bloqueia ações de risco para as contas de demonstração (mexer em usuários e
+ * nas configurações da empresa): o visitante vê as telas, mas não estraga a
+ * demonstração para o próximo.
+ */
+export const blockDemoUser = (req, _res, next) => {
+  if (isDemoUser(req.user)) {
+    return next(
+      forbidden(
+        "Na demonstração, esta ação fica bloqueada para não alterar o sistema de quem vem depois. " +
+          "Abrir, responder e fechar chamados funciona normalmente."
+      )
+    );
+  }
+
   return next();
 };
 

@@ -65,6 +65,12 @@ ALTER TABLE chamados ALTER COLUMN numero SET DEFAULT nextval('chamados_numero_se
 ALTER TABLE chamados ALTER COLUMN numero SET NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS chamados_numero_idx ON chamados (numero);
 
+-- Modo demonstração: quando os dados de exemplo foram restaurados pela última vez.
+CREATE TABLE IF NOT EXISTS demo_state (
+  id       INTEGER PRIMARY KEY CHECK (id = 1),
+  reset_at TIMESTAMPTZ
+);
+
 CREATE TABLE IF NOT EXISTS notifications (
   id                  UUID PRIMARY KEY,
   type                TEXT NOT NULL,

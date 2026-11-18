@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { config } from "../../config/env.js";
 import { badRequest, notFound } from "../../shared/http/httpError.js";
 import { query, toIso } from "../../shared/db/database.js";
+import { DEMO_USERNAMES, isDemoUser } from "../../shared/demo.js";
 import { ROLE_ADMIN, ROLE_USUARIO, VALID_ROLES } from "../../shared/roles.js";
 import { hashPassword, safeTextEqual, verifyPassword } from "../../shared/security.js";
 
@@ -65,6 +66,8 @@ export const sanitizeUser = (user) => ({
   name: user.name,
   role: user.role,
   department: user.department,
+  // Só nas contas de demonstração: a tela avisa que algumas ações ficam bloqueadas.
+  ...(isDemoUser(user) ? { demo: true } : {}),
 });
 
 export const findUserByCredentials = async ({ username, password }) => {
@@ -232,7 +235,8 @@ export const createUser = async ({ name, surname, password, role, department }) 
   for (let attempt = 1; ; attempt += 1) {
     try {
       const rows = await query("SELECT username FROM users");
-      const taken = new Set(rows.map((item) => item.username));
+      // Os logins de demonstração ficam reservados, mesmo antes de existirem.
+      const taken = new Set([...rows.map((item) => item.username), ...DEMO_USERNAMES]);
       const envAdmin = getEnvAdmin();
 
       if (envAdmin) {

@@ -18,6 +18,22 @@
   padding: 4px 0 18px;
 }
 
+/* Aviso das contas de demonstração (entraram pelos botões da tela de login). */
+.home-demo-note {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--brand-light) 35%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.home-demo-note strong {
+  color: var(--text-strong);
+}
+
 .home-brand {
   display: flex;
   align-items: center;

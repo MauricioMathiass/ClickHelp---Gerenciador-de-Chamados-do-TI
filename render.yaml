@@ -22,6 +22,10 @@ services:
         value: "22"
       - key: TZ
         value: America/Sao_Paulo
+      # Esta publicação é de demonstração (link do currículo): a tela de login
+      # mostra botões para entrar com perfis de exemplo. Use "false" numa empresa.
+      - key: DEMO_MODE
+        value: "true"
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET

@@ -128,6 +128,17 @@ Os testes usam um PostgreSQL embutido só na memória e nunca mexem no Neon nem 
 
 O primeiro administrador é definido no `backend/.env`. Os demais usuários são gerenciados na tela **Usuários**: cadastrar, mudar perfil e departamento, desativar/reativar e redefinir a senha (é assim que se atende o "Esqueceu a senha?"). Desativar ou redefinir a senha encerra as sessões abertas do usuário.
 
+### Modo demonstração
+
+Com `DEMO_MODE=true` no backend (já ligado no `render.yaml`, porque a publicação serve de demonstração), a tela de login mostra os botões **Usuário**, **Analista de TI** e **Administrador**, que entram sem senha com contas de exemplo (`demo.*`):
+
+- chamados fictícios em todas as situações (aberto, em andamento, fechado no prazo e com SLA violado), para o painel e o relatório de SLA já aparecerem preenchidos;
+- quando a última restauração tem mais de 6 horas, o próximo acesso de demonstração apaga os chamados das contas `demo.*` e recria os de exemplo. Chamados de outras contas não são apagados;
+- o administrador de exemplo vê **Usuários** e **Configurações**, mas não salva nada nelas. Abrir, responder e fechar chamados funciona normalmente;
+- as contas `demo.*` não entram por senha, e esses logins ficam reservados no cadastro de usuários.
+
+Numa instalação de uma empresa, deixe `DEMO_MODE=false`.
+
 ## Configurações da empresa
 
 | Aba                  | O que define                                                                                       |
@@ -197,6 +208,7 @@ Alterações de chamado rodam em transação com `SELECT ... FOR UPDATE`, então
 | Método         | Rota                       | Acesso                                                     |
 | -------------- | -------------------------- | ---------------------------------------------------------- |
 | `POST`         | `/api/auth/login`          | público                                                    |
+| `POST`         | `/api/auth/demo`           | público, só com `DEMO_MODE=true` (`perfil`)                |
 | `GET`          | `/api/auth/me`             | logado                                                     |
 | `GET`          | `/api/settings/public`     | público (nome, logo e cores)                               |
 | `GET`          | `/api/settings`            | logado                                                     |

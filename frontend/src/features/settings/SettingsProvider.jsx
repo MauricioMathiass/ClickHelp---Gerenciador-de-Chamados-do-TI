@@ -33,11 +33,19 @@ export function SettingsProvider({ isAuthenticated, children }) {
   const [settings, setSettings] = useState(null);
   const [options, setOptions] = useState({ movableHolidays: [] });
   const [loadError, setLoadError] = useState("");
+  // A tela de login espera esta resposta para saber se mostra os botões de
+  // demonstração; enquanto não chega, avisa que o servidor pode estar acordando.
+  const [isPublicLoaded, setIsPublicLoaded] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
 
   useEffect(() => {
     getPublicSettings()
-      .then((data) => setBranding({ ...DEFAULT_BRANDING, ...data.branding }))
-      .catch(() => {});
+      .then((data) => {
+        setBranding({ ...DEFAULT_BRANDING, ...data.branding });
+        setDemoMode(data.demoMode === true);
+      })
+      .catch(() => {})
+      .finally(() => setIsPublicLoaded(true));
   }, []);
 
   const reload = useCallback(async () => {
@@ -81,11 +89,13 @@ export function SettingsProvider({ isAuthenticated, children }) {
       catalog: (isAuthenticated && settings?.catalog) || EMPTY_CATALOG,
       isLoaded: Boolean(isAuthenticated && settings),
       loadError: isAuthenticated ? loadError : "",
+      isPublicLoaded,
+      demoMode,
       options,
       reload,
       save,
     }),
-    [branding, settings, isAuthenticated, loadError, options, reload, save]
+    [branding, settings, isAuthenticated, loadError, isPublicLoaded, demoMode, options, reload, save]
   );
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

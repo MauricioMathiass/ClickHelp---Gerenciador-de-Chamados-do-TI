@@ -1,6 +1,8 @@
 import { config } from "../../config/env.js";
-import { badRequest, HttpError, unauthorized } from "../../shared/http/httpError.js";
+import { isDemoMode } from "../../shared/demo.js";
+import { badRequest, HttpError, notFound, unauthorized } from "../../shared/http/httpError.js";
 import { signToken } from "../../shared/security.js";
+import { getDemoAccount } from "../demo/demo.service.js";
 import { findUserByCredentials, sanitizeUser } from "../users/users.service.js";
 import { clearFailures, getLockMinutes, registerFailure } from "./loginThrottle.js";
 
@@ -32,13 +34,26 @@ export const login = async (req, res) => {
   }
 
   clearFailures(req.ip, username);
+  sendSession(res, user, rememberMe ? REMEMBER_TTL_SECONDS : SESSION_TTL_SECONDS);
+};
 
+/** Entrada sem senha com um perfil de exemplo. Só existe com DEMO_MODE=true. */
+export const demoLogin = async (req, res) => {
+  if (!isDemoMode()) {
+    throw notFound("Rota não encontrada.");
+  }
+
+  const user = await getDemoAccount(req.body?.perfil);
+  sendSession(res, user, SESSION_TTL_SECONDS);
+};
+
+const sendSession = (res, user, ttlSeconds) => {
   const publicUser = sanitizeUser(user);
   const token = signToken(
     // pv = versão da senha: redefinir a senha invalida os tokens antigos.
     { sub: publicUser.id, ...publicUser, pv: user.passwordVersion ?? 0 },
     config.jwtSecret,
-    rememberMe ? REMEMBER_TTL_SECONDS : SESSION_TTL_SECONDS
+    ttlSeconds
   );
 
   res.status(200).json({

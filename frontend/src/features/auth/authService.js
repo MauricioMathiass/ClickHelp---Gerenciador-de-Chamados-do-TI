@@ -74,6 +74,29 @@ export const loginUser = async ({ username, password, rememberMe }) => {
   }
 };
 
+/**
+ * Entra sem senha com um perfil de exemplo ("usuario", "analista" ou
+ * "administrador"). Só funciona quando o backend está em modo demonstração.
+ * A sessão fica só nesta aba e não preenche o "lembrar usuário".
+ */
+export const loginDemo = async (perfil) => {
+  try {
+    const { data } = await api.post("/auth/demo", { perfil });
+    const session = {
+      token: data.token,
+      rememberMe: false,
+      authenticatedAt: new Date().toISOString(),
+      user: data.user,
+    };
+
+    setApiToken(session.token);
+    persistSession(session, false);
+    return session;
+  } catch (error) {
+    throw new Error(getApiErrorMessage(error, "Não foi possível entrar na demonstração."));
+  }
+};
+
 /** Sessão salva no navegador, se ainda estiver válida. */
 export const getStoredSession = () => {
   const storedValues = [

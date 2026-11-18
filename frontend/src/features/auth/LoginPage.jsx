@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { getRememberedLogin, loginUser } from "./authService";
+import { getRememberedLogin, loginDemo, loginUser } from "./authService";
 import { COLD_START_MESSAGE, useSlowFlag } from "../../shared/hooks/useSlowFlag";
+import { useSettings } from "../settings/useSettings";
 import AuthTicket from "./AuthTicket";
+
+/** Perfis de exemplo do modo demonstração (os mesmos do backend). */
+const DEMO_PROFILES = [
+  { value: "usuario", label: "Usuário", description: "Abre chamados e acompanha a resposta da TI" },
+  { value: "analista", label: "Analista de TI", description: "Atende a fila, responde e fecha chamados" },
+  { value: "administrador", label: "Administrador", description: "Vê o SLA, os usuários e as configurações" },
+];
 
 const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
   const [username, setUsername] = useState(() => getRememberedLogin()?.username ?? "");
@@ -10,10 +18,28 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(() => getRememberedLogin()?.rememberMe ?? true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [demoProfile, setDemoProfile] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const isSlow = useSlowFlag(isSubmitting);
+  const { demoMode, isPublicLoaded } = useSettings();
+  const isBusy = isSubmitting || Boolean(demoProfile);
+  const isSlow = useSlowFlag(isBusy);
+  // O site abre antes de a API responder: se ela está dormindo, avisa já na abertura.
+  const isWaking = useSlowFlag(!isPublicLoaded);
 
   const togglePassword = () => setShowPassword((current) => !current);
+
+  const handleDemo = async (perfil) => {
+    setErrorMessage("");
+    setDemoProfile(perfil);
+
+    try {
+      onLoginSuccess?.(await loginDemo(perfil));
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setDemoProfile("");
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -44,7 +70,37 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
   return (
     <AuthTicket>
       <form className="paper-ticket-body login-body" onSubmit={handleSubmit} noValidate>
-        <h2 className="login-title">Acesse sua conta</h2>
+        {demoMode ? (
+          <section className="login-demo" aria-labelledby="login-demo-title">
+            <h2 id="login-demo-title" className="login-title">
+              Conheça o sistema
+            </h2>
+            <p className="login-demo-intro">
+              Entre sem senha com um perfil de exemplo. Os dados são fictícios e voltam ao original sozinhos.
+            </p>
+
+            <div className="login-demo-options">
+              {DEMO_PROFILES.map((profile) => (
+                <button
+                  key={profile.value}
+                  type="button"
+                  className="login-demo-option"
+                  onClick={() => handleDemo(profile.value)}
+                  disabled={isBusy}
+                >
+                  <strong>{demoProfile === profile.value ? "Entrando..." : profile.label}</strong>
+                  <span>{profile.description}</span>
+                </button>
+              ))}
+            </div>
+
+            <p className="login-demo-divider">
+              <span>ou entre com sua conta</span>
+            </p>
+          </section>
+        ) : null}
+
+        {demoMode ? null : <h2 className="login-title">Acesse sua conta</h2>}
 
         <label className="login-label" htmlFor="username">
           Usuário
@@ -59,7 +115,7 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
           autoComplete="username"
           autoCapitalize="none"
           spellCheck={false}
-          disabled={isSubmitting}
+          disabled={isBusy}
         />
 
         <label className="login-label" htmlFor="password">
@@ -73,7 +129,7 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             autoComplete="current-password"
-            disabled={isSubmitting}
+            disabled={isBusy}
           />
           <button
             type="button"
@@ -81,7 +137,7 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
             onClick={togglePassword}
             aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
             aria-pressed={showPassword}
-            disabled={isSubmitting}
+            disabled={isBusy}
           >
             {showPassword ? <FaEyeSlash /> : <FaEye />}
           </button>
@@ -99,7 +155,7 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
               type="checkbox"
               checked={rememberMe}
               onChange={(event) => setRememberMe(event.target.checked)}
-              disabled={isSubmitting}
+              disabled={isBusy}
             />
             <span>Manter conectado</span>
           </label>
@@ -116,12 +172,12 @@ const LoginPage = ({ onForgotPassword, onLoginSuccess }) => {
           </a>
         </div>
 
-        <button type="submit" className="login-submit" disabled={isSubmitting}>
+        <button type="submit" className="login-submit" disabled={isBusy}>
           {isSubmitting ? "Entrando..." : "Entrar"}
         </button>
 
         <p className="login-slow" role="status">
-          {isSlow ? COLD_START_MESSAGE : ""}
+          {isSlow || isWaking ? COLD_START_MESSAGE : ""}
         </p>
       </form>
     </AuthTicket>

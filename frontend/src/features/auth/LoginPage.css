@@ -223,6 +223,80 @@
   margin: 0;
 }
 
+/* ---------- Modo demonstração: entrar com um perfil de exemplo ---------- */
+
+.login-demo .login-title {
+  margin-bottom: 6px;
+}
+
+.login-demo-intro {
+  margin: 0 0 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.login-demo-options {
+  display: grid;
+  gap: 8px;
+}
+
+.login-demo-option {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--field-border);
+  border-radius: 10px;
+  background: var(--field-bg);
+  color: var(--text-strong);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.login-demo-option strong {
+  font-size: 15px;
+}
+
+.login-demo-option span {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.login-demo-option:hover:not(:disabled) {
+  border-color: var(--brand-light);
+}
+
+.login-demo-option:focus-visible {
+  outline: 2px solid var(--brand-light);
+  outline-offset: 2px;
+}
+
+.login-demo-option:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.login-demo-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.login-demo-divider::before,
+.login-demo-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--field-border);
+}
+
 /* ---------- Estreito: canhoto em cima, em linha com a marca ---------- */
 
 @container paper-ticket (max-width: 640px) {
